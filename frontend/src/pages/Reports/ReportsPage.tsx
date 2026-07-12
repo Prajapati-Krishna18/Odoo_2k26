@@ -48,39 +48,42 @@ const heatmapData = [
 
 export default function ReportsPage() {
   return (
-    <div className="min-h-screen bg-bg-void text-text-primary px-6 py-8 lg:px-10 lg:py-10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="space-y-2 max-w-2xl">
-          <p className="text-xs uppercase tracking-[0.35em] text-text-muted">Reports & analytics</p>
-          <h1 className="text-3xl font-display font-semibold tracking-tight text-text-primary sm:text-4xl">
-            Operational insights for asset utilization and maintenance.
-          </h1>
+    <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1400, margin: '0 auto' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'end', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.35em', color: 'var(--text-muted)' }}>Reports & analytics</p>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+            Operational Insights
+          </h2>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+            Asset utilization and maintenance overview.
+          </p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           {['PDF', 'Excel', 'CSV'].map((format) => (
             <button
               key={format}
               type="button"
-              className="inline-flex items-center gap-2 rounded-[0.75rem] border border-border-soft bg-bg-surface px-4 py-3 text-sm text-text-primary transition hover:border-accent-cyan"
+              className="panel"
+              style={{ padding: '6px 14px', fontSize: '0.75rem', color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
             >
-              <Download size={14} />
-              Export {format}
+              <Download size={14} /> Export {format}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="grid gap-8 pt-8 xl:grid-cols-[1.2fr_0.8fr]">
-        <section className="space-y-6">
-          <div className="rounded-[0.85rem] border border-border-soft bg-bg-surface p-5">
-            <div className="flex items-center justify-between gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 24, alignItems: 'start' }}>
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div className="panel" style={{ padding: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
               <div>
-                <p className="text-xs uppercase tracking-[0.35em] text-text-muted">Asset utilization</p>
-                <h2 className="mt-2 text-lg font-semibold text-text-primary">Most-used vs idle</h2>
+                <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.35em', color: 'var(--text-muted)' }}>Asset utilization</p>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0, marginTop: 4 }}>Most-used vs idle</h3>
               </div>
-              <FileText size={18} className="text-accent-cyan" />
+              <FileText size={18} style={{ color: 'var(--accent-cyan)' }} />
             </div>
-            <div className="mt-5 h-60">
+            <div style={{ marginTop: 20, height: 240 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={utilizationData} margin={{ top: 10, right: 0, left: -22, bottom: 0 }}>
                   <defs>
@@ -90,13 +93,14 @@ export default function ReportsPage() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
-                  <XAxis dataKey="name" stroke="var(--text-muted)" tickLine={false} axisLine={false} />
-                  <YAxis stroke="var(--text-muted)" tickLine={false} axisLine={false} />
+                  <XAxis dataKey="name" stroke="var(--text-muted)" tickLine={false} axisLine={false} style={{ fontSize: '0.75rem' }} />
+                  <YAxis stroke="var(--text-muted)" tickLine={false} axisLine={false} style={{ fontSize: '0.75rem' }} />
                   <Tooltip
                     contentStyle={{
                       background: '#131F19',
                       border: '1px solid rgba(12,202,200,0.2)',
                       color: '#EDF3EA',
+                      fontSize: '0.75rem',
                     }}
                   />
                   <Area type="monotone" dataKey="value" stroke="#0CCAC8" strokeWidth={2} fill="url(#utilGradient)" />
@@ -105,25 +109,26 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <div className="rounded-[0.85rem] border border-border-soft bg-bg-surface p-5">
-            <div className="flex items-center justify-between gap-4">
+          <div className="panel" style={{ padding: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
               <div>
-                <p className="text-xs uppercase tracking-[0.35em] text-text-muted">Maintenance frequency</p>
-                <h2 className="mt-2 text-lg font-semibold text-text-primary">By asset category</h2>
+                <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.35em', color: 'var(--text-muted)' }}>Maintenance frequency</p>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0, marginTop: 4 }}>By asset category</h3>
               </div>
-              <ListChecks size={18} className="text-accent-cyan" />
+              <ListChecks size={18} style={{ color: 'var(--accent-cyan)' }} />
             </div>
-            <div className="mt-5 h-60">
+            <div style={{ marginTop: 20, height: 240 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={maintenanceData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                   <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
-                  <XAxis dataKey="category" stroke="var(--text-muted)" tickLine={false} axisLine={false} />
-                  <YAxis stroke="var(--text-muted)" tickLine={false} axisLine={false} />
+                  <XAxis dataKey="category" stroke="var(--text-muted)" tickLine={false} axisLine={false} style={{ fontSize: '0.75rem' }} />
+                  <YAxis stroke="var(--text-muted)" tickLine={false} axisLine={false} style={{ fontSize: '0.75rem' }} />
                   <Tooltip
                     contentStyle={{
                       background: '#131F19',
                       border: '1px solid rgba(12,202,200,0.2)',
                       color: '#EDF3EA',
+                      fontSize: '0.75rem',
                     }}
                   />
                   <Bar dataKey="frequency" fill="#0CCAC8" radius={[8, 8, 0, 0]} />
@@ -133,41 +138,41 @@ export default function ReportsPage() {
           </div>
         </section>
 
-        <aside className="space-y-6">
-          <div className="rounded-[0.85rem] border border-border-soft bg-bg-surface p-5">
-            <div className="flex items-center justify-between gap-4">
+        <aside style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div className="panel" style={{ padding: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
               <div>
-                <p className="text-xs uppercase tracking-[0.35em] text-text-muted">Due soon</p>
-                <h2 className="mt-2 text-lg font-semibold text-text-primary">Maintenance & retirement</h2>
+                <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.35em', color: 'var(--text-muted)' }}>Due soon</p>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0, marginTop: 4 }}>Maintenance & retirement</h3>
               </div>
-              <Clock3 size={18} className="text-accent-cyan" />
+              <Clock3 size={18} style={{ color: 'var(--accent-cyan)' }} />
             </div>
-            <div className="mt-5 space-y-4">
+            <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
               {dueSoon.map((item) => (
-                <div key={item.id} className="rounded-[0.75rem] border border-border-soft bg-bg-void/10 p-4">
-                  <div className="flex items-center justify-between gap-3">
+                <div key={item.id} style={{ padding: '12px 14px', background: 'var(--bg-void)', border: '1px solid var(--border-soft)', borderRadius: 2 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                     <div>
-                      <p className="font-semibold text-text-primary">{item.name}</p>
-                      <p className="text-xs text-text-muted">{item.note}</p>
+                      <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</p>
+                      <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{item.note}</p>
                     </div>
-                    <span className="rounded-full bg-border-soft/70 px-3 py-1 text-xs text-text-muted">{item.due}</span>
+                    <span style={{ padding: '2px 8px', background: 'var(--bg-surface-raised)', border: '1px solid var(--border-soft)', fontSize: '0.68rem', color: 'var(--text-muted)', borderRadius: 2 }}>{item.due}</span>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="rounded-[0.85rem] border border-border-soft bg-bg-surface p-5">
-            <p className="text-xs uppercase tracking-[0.35em] text-text-muted">Department allocations</p>
-            <div className="mt-4 space-y-4">
+          <div className="panel" style={{ padding: 20 }}>
+            <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.35em', color: 'var(--text-muted)' }}>Department allocations</p>
+            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
               {allocationSummary.map((item) => (
-                <div key={item.department} className="space-y-2">
-                  <div className="flex items-center justify-between text-sm text-text-primary">
+                <div key={item.department} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-primary)' }}>
                     <span>{item.department}</span>
-                    <span>{item.allocated}% allocated</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{item.allocated}% allocated</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-border-soft">
-                    <div className="h-full rounded-full bg-accent-cyan" style={{ width: `${item.allocated}%` }} />
+                  <div style={{ height: 6, background: 'var(--border-soft)', position: 'relative', overflow: 'hidden', borderRadius: 2 }}>
+                    <div style={{ height: '100%', background: 'var(--accent-cyan)', width: `${item.allocated}%`, borderRadius: 2 }} />
                   </div>
                 </div>
               ))}
@@ -176,31 +181,33 @@ export default function ReportsPage() {
         </aside>
       </div>
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-[0.75fr_1fr]">
-        <div className="rounded-[0.85rem] border border-border-soft bg-bg-surface p-5">
-          <div className="flex items-center justify-between gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 24, alignItems: 'start' }}>
+        <div className="panel" style={{ padding: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
             <div>
-              <p className="text-xs uppercase tracking-[0.35em] text-text-muted">Booking heatmap</p>
-              <h2 className="mt-2 text-lg font-semibold text-text-primary">Resource booking density</h2>
+              <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.35em', color: 'var(--text-muted)' }}>Booking heatmap</p>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0, marginTop: 4 }}>Resource booking density</h3>
             </div>
-            <FileText size={18} className="text-accent-cyan" />
+            <FileText size={18} style={{ color: 'var(--accent-cyan)' }} />
           </div>
-          <div className="mt-5 overflow-x-auto">
-            <div className="inline-grid min-w-[420px] gap-2">
-              <div className="grid grid-cols-[2fr_repeat(6,_1fr)] items-center gap-2 text-xs uppercase tracking-[0.25em] text-text-muted">
+          <div style={{ marginTop: 20, overflowX: 'auto' }}>
+            <div style={{ display: 'inline-grid', minWidth: 420, gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr repeat(6, 1fr)', alignItems: 'center', gap: 8, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.25em', color: 'var(--text-muted)' }}>
                 <span />
                 {heatmapHours.map((hour) => (
-                  <span key={hour} className="text-center">{hour}</span>
+                  <span key={hour} style={{ textAlign: 'center' }}>{hour}</span>
                 ))}
               </div>
               {heatmapDays.map((day, index) => (
-                <div key={day} className="grid grid-cols-[2fr_repeat(6,_1fr)] items-center gap-2 text-sm text-text-primary">
+                <div key={day} style={{ display: 'grid', gridTemplateColumns: '2fr repeat(6, 1fr)', alignItems: 'center', gap: 8, fontSize: '0.78rem', color: 'var(--text-primary)' }}>
                   <span>{day}</span>
                   {heatmapData[index].map((value, cellIndex) => (
                     <div
                       key={cellIndex}
-                      className="h-10 w-full rounded-[0.55rem]"
                       style={{
+                        height: 40,
+                        width: '100%',
+                        borderRadius: 2,
                         background: `rgba(12,202,200,${0.08 + value * 0.12})`,
                       }}
                     />
@@ -211,21 +218,21 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="rounded-[0.85rem] border border-border-soft bg-bg-surface p-5">
-          <p className="text-xs uppercase tracking-[0.35em] text-text-muted">Summary</p>
-          <h2 className="mt-2 text-lg font-semibold text-text-primary">Export-ready insights</h2>
-          <div className="mt-5 grid gap-3 text-sm text-text-muted">
-            <div className="rounded-[0.75rem] border border-border-soft bg-bg-void/15 p-4">
-              <p className="font-semibold text-text-primary">76% utilization</p>
-              <p className="mt-1">Most assets are in active use and ready for assignment.</p>
+        <div className="panel" style={{ padding: 20 }}>
+          <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.35em', color: 'var(--text-muted)' }}>Summary</p>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0, marginTop: 4 }}>Export-ready insights</h3>
+          <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 12, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+            <div style={{ padding: '16px', background: 'var(--bg-void)', border: '1px solid var(--border-soft)', borderRadius: 2 }}>
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>76% utilization</p>
+              <p style={{ marginTop: 4 }}>Most assets are in active use and ready for assignment.</p>
             </div>
-            <div className="rounded-[0.75rem] border border-border-soft bg-bg-void/15 p-4">
-              <p className="font-semibold text-text-primary">4 assets due soon</p>
-              <p className="mt-1">Maintenance and retirement reviews should be scheduled within the week.</p>
+            <div style={{ padding: '16px', background: 'var(--bg-void)', border: '1px solid var(--border-soft)', borderRadius: 2 }}>
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>4 assets due soon</p>
+              <p style={{ marginTop: 4 }}>Maintenance and retirement reviews should be scheduled within the week.</p>
             </div>
-            <div className="rounded-[0.75rem] border border-border-soft bg-bg-void/15 p-4">
-              <p className="font-semibold text-text-primary">Engineering has highest allocation</p>
-              <p className="mt-1">Allocation is concentrated in Engineering, while Support has room to absorb overflow.</p>
+            <div style={{ padding: '16px', background: 'var(--bg-void)', border: '1px solid var(--border-soft)', borderRadius: 2 }}>
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Engineering has highest allocation</p>
+              <p style={{ marginTop: 4 }}>Allocation is concentrated in Engineering, while Support has room to absorb overflow.</p>
             </div>
           </div>
         </div>
