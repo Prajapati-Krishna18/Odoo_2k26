@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────
 // AssetFlow — Prisma Schema
-// Phase 4: Shared Backend Infrastructure
+// Phase 6: Platform Administration & Configuration
 // ─────────────────────────────────────────────────────────────
 
 generator client {
@@ -31,7 +31,8 @@ model Role {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users User[]
+  users           User[]
+  rolePermissions RolePermission[]
 
   @@map("roles")
 }
@@ -160,4 +161,51 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
+}
+
+// ── System Settings ──────────────────────────────────────────
+
+model SystemSetting {
+  id                  String   @id @default(uuid())
+  companyName         String   @map("company_name")
+  companyLogo         String?  @map("company_logo")
+  address             String?
+  timezone            String   @default("UTC")
+  dateFormat          String   @default("YYYY-MM-DD") @map("date_format")
+  currency            String   @default("USD")
+  language            String   @default("en")
+  theme               String   @default("dark")
+  
+  // Audit configurations
+  auditRetentionDays  Int      @default(90) @map("audit_retention_days")
+  auditLogLevel       String   @default("INFO") @map("audit_log_level")
+  auditEnabledModules String[] @default(["AUTH", "DEPARTMENT", "EMPLOYEE"]) @map("audit_enabled_modules")
+  
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
+
+// ── Permissions ──────────────────────────────────────────────
+
+model Permission {
+  id        String   @id @default(uuid())
+  name      String   @unique // e.g. "Department.Create", "Employee.View"
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String @map("role_id")
+  permissionId String @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
 }

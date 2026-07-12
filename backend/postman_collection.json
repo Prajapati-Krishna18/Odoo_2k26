@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "AssetFlow — ERP System APIs",
-    "description": "Auth, RBAC, Organisation Setup, Dashboard, Notifications, Activity Logs, Global Search, Shared Uploads, Reports, and Analytics endpoints for the AssetFlow ERP system.",
+    "description": "Auth, RBAC, Organisation Setup, Dashboard, Notifications, Activity Logs, Global Search, Shared Uploads, Reports, Analytics, System Diagnostics, and Settings endpoints for the AssetFlow ERP system.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -373,39 +373,6 @@
       ]
     },
     {
-      "name": "Uploads",
-      "item": [
-        {
-          "name": "Upload Single File",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": []
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{baseUrl}}/upload/single",
-              "host": ["{{baseUrl}}"],
-              "path": ["upload", "single"]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
       "name": "Reports",
       "item": [
         {
@@ -447,50 +414,6 @@
             }
           },
           "response": []
-        },
-        {
-          "name": "Export Employee Directory (CSV)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/reports/export?entity=employees&format=csv",
-              "host": ["{{baseUrl}}"],
-              "path": ["reports", "export"],
-              "query": [
-                { "key": "entity", "value": "employees" },
-                { "key": "format", "value": "csv" }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Export Department List (XLSX)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/reports/export?entity=departments&format=xlsx",
-              "host": ["{{baseUrl}}"],
-              "path": ["reports", "export"],
-              "query": [
-                { "key": "entity", "value": "departments" },
-                { "key": "format", "value": "xlsx" }
-              ]
-            }
-          },
-          "response": []
         }
       ]
     },
@@ -517,9 +440,14 @@
             }
           },
           "response": []
-        },
+        }
+      ]
+    },
+    {
+      "name": "System Diagnostics",
+      "item": [
         {
-          "name": "Get Monthly Trends",
+          "name": "Get Health Check",
           "request": {
             "method": "GET",
             "header": [
@@ -529,12 +457,94 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/analytics?cycle=monthly",
+              "raw": "{{baseUrl}}/system/health",
               "host": ["{{baseUrl}}"],
-              "path": ["analytics"],
-              "query": [
-                { "key": "cycle", "value": "monthly" }
-              ]
+              "path": ["system", "health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get System Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/system/info",
+              "host": ["{{baseUrl}}"],
+              "path": ["system", "info"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Version Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/system/version",
+              "host": ["{{baseUrl}}"],
+              "path": ["system", "version"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "Get System Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["settings"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update System Settings",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["settings"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"AssetFlow ERP Inc.\",\n  \"timezone\": \"Asia/Kolkata\",\n  \"theme\": \"system\",\n  \"auditRetentionDays\": 120\n}"
             }
           },
           "response": []

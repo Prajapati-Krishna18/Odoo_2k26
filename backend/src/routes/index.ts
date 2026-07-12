@@ -21,6 +21,8 @@ import uploadRouter from "../modules/upload/upload.routes.js";
 import searchRouter from "../modules/search/search.routes.js";
 import reportRouter from "../modules/report/report.routes.js";
 import analyticsRouter from "../modules/analytics/analytics.routes.js";
+import settingsRouter from "../modules/settings/settings.routes.js";
+import systemRouter from "../modules/system/system.routes.js";
 
 const router = Router();
 
@@ -61,5 +63,7 @@ router.use("/upload", uploadRouter);
 router.use("/search", searchRouter);
 router.use("/reports", reportRouter);
 router.use("/analytics", analyticsRouter);
+router.use("/settings", settingsRouter);
+router.use("/system", systemRouter);
 
 export default router;

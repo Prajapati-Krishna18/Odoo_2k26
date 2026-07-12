@@ -1,8 +1,7 @@
 /**
  * @file    seed.ts
  * @desc    Prisma database seed script.
- *
- *          Creates the four default roles and one admin user.
+ *          Creates roles, the default Admin user, permissions mapping, and default settings.
  *          Idempotent — safe to run multiple times.
  *
  *          Usage:  npx prisma db seed
@@ -26,9 +25,7 @@ if (!DATABASE_URL) {
 const adapter = new PrismaPg({ connectionString: DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
-// ────────────────────────────────────────────────────────────
-// Seed data
-// ────────────────────────────────────────────────────────────
+// ── Seed Constants ────────────────────────────────────────────
 
 const ROLES = ["ADMIN", "ASSET_MANAGER", "DEPARTMENT_HEAD", "EMPLOYEE"];
 
@@ -40,6 +37,38 @@ const ADMIN_USER = {
   employeeCode: "EMP-ADMIN",
   designation: "System Administrator",
 };
+
+const DEFAULT_SETTINGS = {
+  companyName: "AssetFlow Corporation",
+  companyLogo: null,
+  address: "Surat, Gujarat, India",
+  timezone: "Asia/Kolkata",
+  dateFormat: "YYYY-MM-DD",
+  currency: "INR",
+  language: "en",
+  theme: "dark",
+  auditRetentionDays: 90,
+  auditLogLevel: "INFO",
+  auditEnabledModules: ["AUTH", "DEPARTMENT", "EMPLOYEE"],
+};
+
+const PERMISSIONS = [
+  "Department.Create",
+  "Department.Update",
+  "Employee.View",
+  "Report.Export",
+  "Dashboard.View",
+  "Notification.Manage",
+];
+
+const ROLE_PERMISSIONS: Record<string, string[]> = {
+  ADMIN: PERMISSIONS,
+  ASSET_MANAGER: ["Employee.View", "Report.Export", "Dashboard.View", "Notification.Manage"],
+  DEPARTMENT_HEAD: ["Employee.View", "Dashboard.View", "Notification.Manage"],
+  EMPLOYEE: ["Employee.View", "Notification.Manage"],
+};
+
+// ── Main Seed Flow ────────────────────────────────────────────
 
 async function main(): Promise<void> {
   console.log("🌱  Seeding database...\n");
@@ -65,7 +94,7 @@ async function main(): Promise<void> {
 
   const hashedPassword = await bcrypt.hash(ADMIN_USER.password, 12);
 
-  await prisma.user.upsert({
+  const admin = await prisma.user.upsert({
     where: { email: ADMIN_USER.email },
     update: {
       employeeCode: ADMIN_USER.employeeCode,
@@ -85,9 +114,61 @@ async function main(): Promise<void> {
       joiningDate: new Date(),
     },
   });
-  console.log(`   ✅  Admin: ${ADMIN_USER.email}\n`);
+  console.log(`   ✅  Admin: ${ADMIN_USER.email}`);
 
-  console.log("🎉  Seeding complete!");
+  // 3 — Upsert default settings
+  const existingSettings = await prisma.systemSetting.findFirst();
+  if (!existingSettings) {
+    await prisma.systemSetting.create({
+      data: DEFAULT_SETTINGS,
+    });
+    console.log("   ✅  System Settings seeded with defaults");
+  } else {
+    console.log("   ℹ️   System Settings already exist");
+  }
+
+  // 4 — Upsert permissions
+  for (const perm of PERMISSIONS) {
+    await prisma.permission.upsert({
+      where: { name: perm },
+      update: {},
+      create: { name: perm },
+    });
+  }
+  console.log(`   ✅  Permissions pre-registered: ${PERMISSIONS.length}`);
+
+  // 5 — Map permissions to roles
+  for (const roleName of ROLES) {
+    const roleRecord = await prisma.role.findUnique({ where: { name: roleName } });
+    if (!roleRecord) continue;
+
+    const allowedPerms = ROLE_PERMISSIONS[roleName] || [];
+    for (const permName of allowedPerms) {
+      const permRecord = await prisma.permission.findUnique({ where: { name: permName } });
+      if (!permRecord) continue;
+
+      // Upsert composition
+      const key = {
+        roleId: roleRecord.id,
+        permissionId: permRecord.id,
+      };
+
+      const existingRP = await prisma.rolePermission.findUnique({
+        where: {
+          roleId_permissionId: key,
+        },
+      });
+
+      if (!existingRP) {
+        await prisma.rolePermission.create({
+          data: key,
+        });
+      }
+    }
+  }
+  console.log("   ✅  Role-Permission matrices configured");
+
+  console.log("\n🎉  Seeding complete!");
 }
 
 main()
