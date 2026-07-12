@@ -1,95 +1,118 @@
-# AssetFlow — Enterprise Asset & Resource Management System
+# 🌌 AssetFlow — Enterprise Asset & Resource Management System
 
-AssetFlow is a production-ready Enterprise Resource Planning (ERP) backend built to handle corporate assets, category configurations, employee rosters, and department setups. It implements secure token authentication and strict Role-Based Access Control (RBAC).
+<div align="center">
+
+[![React](https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org)
+[![Express](https://img.shields.io/badge/Express-4-green?style=for-the-badge&logo=express)](https://expressjs.com)
+[![Prisma](https://img.shields.io/badge/Prisma-7-indigo?style=for-the-badge&logo=prisma)](https://prisma.io)
+[![Postgres](https://img.shields.io/badge/PostgreSQL-16-blue?style=for-the-badge&logo=postgresql)](https://www.postgresql.org)
+[![Gemini](https://img.shields.io/badge/Gemini_AI-Enabled-cyan?style=for-the-badge&logo=google-gemini)](https://deepmind.google/technologies/gemini)
+
+**An intelligent, enterprise-grade ERP workspace for corporate assets, bookings, custody transfers, and AI-driven infrastructure analytics.**
+
+[Key Features](#-key-features) • [Tech Stack](#-technology-stack) • [Installation](#-setup--installation) • [AI Assistant](#-gemini-ai-assistant)
+
+</div>
 
 ---
 
-## 🚀 Key Modules Built
+## 🚀 Key Features
 
-### 1. Authentication & Session Security (Phase 2)
-*   **Secure Access Control:** Fully stateless authorization using short-lived JWT Access Tokens combined with database-tracked Refresh Tokens (supporting session revocation and rotation).
-*   **Password Security:** Hashed with `bcrypt` using 12 salt rounds.
-*   **Default Employee Registration:** All new registrations default to the `EMPLOYEE` role. Role customization is restricted; only `ADMIN` users can promote roles.
+### 🤖 Gemini AI Assistant
+* **Smart Intent Recognition**: Automatically matches natural language queries to custom database operations (e.g., *"Who has laptop AF-0114?"*, *"Show me overdue resources"*).
+* **Deep Database Context**: Dynamically injects context (assets, roles, active transfer requests, logs) into the LLM system prompt.
+* **Intelligent Recommendations**: Recommends resource allocations and flags capacity warning signals in real time.
 
-### 2. Organization Setup (Phase 3)
-*   **Department Management:**
-    *   Self-referencing parent/child relationships (preventing self-parent loops).
-    *   Validation checks ensuring only `ACTIVE` departments can receive employees.
-    *   Protected soft deletes that block deletion if active employees or sub-departments remain.
-*   **Asset Category Directory:**
-    *   Unique category naming, description parameters, icon class settings, and warranty flags.
-    *   Full status toggle activations and soft deletions.
-*   **Employee Directory:**
-    *   Administrative control for promoting employees (`EMPLOYEE` → `DEPARTMENT_HEAD` → `ASSET_MANAGER`).
-    *   Administrative department transfers (restricted to `ACTIVE` target departments).
-    *   Automatic generation of structured sequential employee codes (e.g. `EMP-2026-0001`) upon employee activation.
+### 🔒 Authentication & Session Security
+* **Stateless Authorization**: Short-lived JWT Access Tokens paired with database-tracked Refresh Tokens (supporting token rotation and revocation).
+* **Role-Based Access Control (RBAC)**: Custom routing protection restricting views between `Admin`, `Asset Manager`, `Department Head`, and `Employee`.
+* **Secured Password Hashing**: Hashed using `bcrypt` (12 salt rounds) with built-in login rate-limiting.
+
+### 📂 Organization Setup & Hierarchy
+* **Self-Referencing Departments**: Structured parent-child trees that prevent circular loops and track employee assignments dynamically.
+* **Custom Asset Categories**: Structured category trees with custom properties, status switches, and soft-delete guards.
+* **Roster Management**: Automated generation of sequential employee codes (e.g., `EMP-2026-0001`) and role promotion triggers.
+
+### 📅 Resource Booking & Scheduler
+* **Visual Timelines**: Multi-view grid showing weekly slot allocations for Rooms, Vehicles, and Equipment.
+* **Race Condition Mitigation**: Employs Postgres exclusion constraints (`btree_gist`) to guarantee slot exclusivity at the DB level, and row-locking transactions for multi-quantity items.
 
 ---
 
 ## 🛠️ Technology Stack
 
-*   **Runtime:** Node.js
-*   **Framework:** Express.js
-*   **Language:** TypeScript (Strict Type Checking, ES2022/NodeNext)
-*   **ORM:** Prisma ORM v7 (configured with Driver Adapters)
-*   **Database:** PostgreSQL (Supabase)
-*   **Validation:** Zod
-*   **Security:** Helmet, CORS, Express Rate Limit
+| Frontend Layer | Backend Core | Database & Infrastructure |
+| :--- | :--- | :--- |
+| **Vite** + **React 19** | **Node.js** + **Express.js** | **PostgreSQL** (Supabase) |
+| **TypeScript** (Strict Mode) | **TypeScript** (ES2022/NodeNext) | **Prisma ORM** (Driver Adapters) |
+| **Lucide Icons** | **Zod** (API Payload Validation) | **Gemini Pro API** (Google GenAI SDK) |
+| **Vanilla CSS** (Premium Theme) | **Helmet, CORS, Rate Limit** | **Postgres exclusion constraints** |
 
 ---
 
-## 📂 Project Architecture
+## 📂 Project Structure
 
-AssetFlow follows a **modular vertical slice architecture** combined with the **Repository-Service-Controller** design pattern:
-
-*   **`controllers/`**: Parses and validates query/body properties (using Zod schemas), delegates actions, and wraps responses using `ApiResponse`.
-*   **`services/`**: Implements core domain logics and business validations.
-*   **`repositories/`**: Contains direct database queries via Prisma, keeping database interactions segregated.
-
----
-
-## 💻 Frontend Integration
-
-The frontend of this application is developed separately. The backend integrates with it through standard REST API endpoints.
-
-To connect the frontend to the backend:
-1.  Ensure the frontend origin is correctly configured in the backend `.env` file under `CLIENT_URL` (e.g. `CLIENT_URL="http://localhost:3000"`).
-2.  The backend will allow cross-origin requests from this specified client origin with credentials (cookies) enabled.
-3.  Configure the frontend API client base URL to point to the backend server (e.g. `http://localhost:8000/api`).
+```
+├── backend/
+│   ├── src/
+│   │   ├── config/          # Environment & Gemini setups
+│   │   ├── middleware/      # Auth & RBAC checks
+│   │   ├── modules/         # Vertical slices (AI, Asset, Booking, Org, etc.)
+│   │   │   ├── ai/          # Google Gemini assistant controller/services
+│   │   │   ├── auth/        # Token validation & authentication
+│   │   │   ├── booking/     # Resource allocation and availability scheduling
+│   │   │   └── employee/    # Employee roster & promotion hooks
+│   │   └── routes/          # Unified Express route handlers
+│   └── prisma/              # Schema definitions and seeding
+└── frontend/
+    ├── src/
+    │   ├── api/             # Typed API clients for unified backend communication
+    │   ├── components/      # Reusable controls (StateRail lifecycle, Searchable selectors)
+    │   ├── context/         # AuthContext session state & hydration hooks
+    │   └── pages/           # Premium themed layouts (Bookings, Assets, Org Setup)
+```
 
 ---
 
 ## 💻 Setup & Installation
 
-To run the backend locally:
+### 1️⃣ Clone and Prepare Env
+```bash
+git clone https://github.com/Prajapati-Krishna18/Odoo_2k26.git
+cd Odoo_2k26
+```
 
-1.  Navigate to the backend directory:
-    ```bash
-    cd backend
-    ```
-2.  Install dependencies:
-    ```bash
-    npm install
-    ```
-3.  Configure your environment variables in `.env` (refer to `.env.example`):
-    ```bash
-    cp .env.example .env
-    ```
-4.  Generate the Prisma Client:
-    ```bash
-    npm run prisma:generate
-    ```
-5.  Run database migrations:
-    ```bash
-    npm run prisma:migrate
-    ```
-6.  Seed default roles and System Admin account:
-    ```bash
-    npm run prisma:seed
-    ```
-7.  Start the development server:
-    ```bash
-    npm run dev
-    ```
+### 2️⃣ Backend Configuration
+```bash
+cd backend
+npm install
+cp .env.example .env
+```
+Update `.env` with your PostgreSQL database URL and your Google Gemini API Key:
+```env
+DATABASE_URL="postgresql://..."
+GEMINI_API_KEY="AIzaSy..."
+```
 
-For detailed API definitions, scripts, folder mappings, and database relationship structures, see the [backend/README.md](file:///d:/Full_Stack/Odoo_Hackathon/Odoo_2k26/backend/README.md).
+Generate client, run database migrations, seed, and launch:
+```bash
+npm run prisma:generate
+npm run prisma:migrate
+npm run prisma:seed
+npm run dev
+```
+
+### 3️⃣ Frontend Configuration
+```bash
+cd ../frontend
+npm install
+npm run dev
+```
+Open [http://localhost:5173](http://localhost:5173) to access the system dashboard!
+
+---
+
+## 👤 Default Credentials
+* **Email**: `admin@assetflow.com`
+* **Password**: `Admin@123`
