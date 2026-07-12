@@ -1,5 +1,7 @@
-// Prisma Schema for AssetFlow
-// Only generator + datasource — models will be added in subsequent phases.
+// ─────────────────────────────────────────────────────────────
+// AssetFlow — Prisma Schema
+// Phase 2: Authentication & RBAC models
+// ─────────────────────────────────────────────────────────────
 
 generator client {
   provider = "prisma-client-js"
@@ -7,4 +9,55 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// ── Role ─────────────────────────────────────────────────────
+
+/// Static roles: ADMIN, ASSET_MANAGER, DEPARTMENT_HEAD, EMPLOYEE
+model Role {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users User[]
+
+  @@map("roles")
+}
+
+// ── User ─────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid())
+  fullName      String    @map("full_name")
+  email         String    @unique
+  password      String
+  phone         String
+  profileImage  String?   @map("profile_image")
+  roleId        String    @map("role_id")
+  isActive      Boolean   @default(true) @map("is_active")
+  emailVerified Boolean   @default(false) @map("email_verified")
+  lastLogin     DateTime? @map("last_login")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  role          Role          @relation(fields: [roleId], references: [id])
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+// ── Refresh Token ────────────────────────────────────────────
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
 }

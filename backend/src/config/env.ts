@@ -20,6 +20,10 @@ const REQUIRED_ENV_VARS = [
   "DIRECT_URL",
   "NODE_ENV",
   "CLIENT_URL",
+  "JWT_ACCESS_SECRET",
+  "JWT_REFRESH_SECRET",
+  "JWT_ACCESS_EXPIRES",
+  "JWT_REFRESH_EXPIRES",
 ] as const;
 
 const missing = REQUIRED_ENV_VARS.filter((key) => !process.env[key]);
@@ -42,7 +46,13 @@ export const env = {
   NODE_ENV: process.env["NODE_ENV"] as "development" | "production" | "test",
   CLIENT_URL: process.env["CLIENT_URL"]!,
 
-  /** Convenience flag */
+  // JWT
+  JWT_ACCESS_SECRET: process.env["JWT_ACCESS_SECRET"]!,
+  JWT_REFRESH_SECRET: process.env["JWT_REFRESH_SECRET"]!,
+  JWT_ACCESS_EXPIRES: process.env["JWT_ACCESS_EXPIRES"]!,
+  JWT_REFRESH_EXPIRES: process.env["JWT_REFRESH_EXPIRES"]!,
+
+  /** Convenience flags */
   isDevelopment: process.env["NODE_ENV"] === "development",
   isProduction: process.env["NODE_ENV"] === "production",
 } as const;
