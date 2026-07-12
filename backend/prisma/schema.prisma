@@ -120,8 +120,10 @@ model User {
   department       Department? @relation("DepartmentEmployees", fields: [departmentId], references: [id])
   headedDepartment Department? @relation("DepartmentHead")
 
-  // Shared Infrastructure relations
-  activityLogs  ActivityLog[]
+  activityLogs      ActivityLog[]
+  assetAllocations  AssetAllocation[] @relation("AssetAllocationEmployee")
+  allocationsMade   AssetAllocation[] @relation("AssetAllocationAllocator")
+  assetBookings     AssetBooking[]
 
   @@map("users")
 }
@@ -160,6 +162,7 @@ model Department {
   childDepartments Department[] @relation("SubDepartments")
   departmentHead   User?        @relation("DepartmentHead", fields: [departmentHeadId], references: [id])
   employees        User[]       @relation("DepartmentEmployees")
+  assets           Asset[]
 
   @@map("departments")
 }
@@ -176,6 +179,8 @@ model AssetCategory {
   isDeleted        Boolean        @default(false) @map("is_deleted")
   createdAt        DateTime       @default(now()) @map("created_at")
   updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  assets Asset[]
 
   @@map("asset_categories")
 }
@@ -352,4 +357,120 @@ model RolePermission {
 
   @@id([roleId, permissionId])
   @@map("role_permissions")
+}
+
+// ── Asset Status & Allocation Status ─────────────────────────
+
+enum AssetStatus {
+  AVAILABLE
+  ALLOCATED
+  RESERVED
+  MAINTENANCE
+  LOST
+  RETIRED
+  DISPOSED
+}
+
+enum AllocationStatus {
+  ACTIVE
+  RETURNED
+  OVERDUE
+}
+
+// ── Asset ────────────────────────────────────────────────────
+
+model Asset {
+  id              String      @id @default(uuid())
+  code            String      @unique
+  name            String
+  description     String?
+  serialNumber    String?     @unique @map("serial_number")
+  categoryId      String      @map("category_id")
+  status          AssetStatus @default(AVAILABLE)
+  location        String?
+  departmentId    String?     @map("department_id")
+  acquisitionDate DateTime?   @map("acquisition_date")
+  acquisitionCost Decimal?    @map("acquisition_cost")
+  condition       String?     @default("New")
+  sharedBookable  Boolean     @default(false) @map("shared_bookable")
+  imageUrl        String?     @map("image_url")
+  warrantyExpiry  DateTime?   @map("warranty_expiry")
+  notes           String?
+  isDeleted       Boolean     @default(false) @map("is_deleted")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  category          AssetCategory      @relation(fields: [categoryId], references: [id])
+  department        Department?        @relation(fields: [departmentId], references: [id])
+  allocations       AssetAllocation[]
+  maintenanceRecords MaintenanceRecord[]
+  bookings          AssetBooking[]
+
+  @@map("assets")
+}
+
+// ── Asset Allocation ─────────────────────────────────────────
+
+model AssetAllocation {
+  id               String           @id @default(uuid())
+  assetId          String           @map("asset_id")
+  employeeId       String           @map("employee_id")
+  allocatedAt      DateTime         @default(now()) @map("allocated_at")
+  returnedAt       DateTime?        @map("returned_at")
+  expectedReturnAt DateTime?        @map("expected_return_at")
+  status           AllocationStatus @default(ACTIVE)
+  notes            String?
+  allocatedById    String           @map("allocated_by_id")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  asset       Asset @relation(fields: [assetId], references: [id])
+  employee    User  @relation("AssetAllocationEmployee", fields: [employeeId], references: [id])
+  allocatedBy User  @relation("AssetAllocationAllocator", fields: [allocatedById], references: [id])
+
+  @@index([assetId])
+  @@index([employeeId])
+  @@map("asset_allocations")
+}
+
+// ── Booking ──────────────────────────────────────────────────
+
+model AssetBooking {
+  id         String   @id @default(uuid())
+  assetId    String   @map("asset_id")
+  bookedById String   @map("booked_by_id")
+  departmentId String? @map("department_id")
+  startDate  DateTime @map("start_date")
+  endDate    DateTime @map("end_date")
+  purpose    String?
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  asset    Asset @relation(fields: [assetId], references: [id])
+  bookedBy User  @relation(fields: [bookedById], references: [id])
+
+  @@index([assetId])
+  @@index([bookedById])
+  @@map("asset_bookings")
+}
+
+// ── Maintenance Record ───────────────────────────────────────
+
+model MaintenanceRecord {
+  id          String   @id @default(uuid())
+  assetId     String   @map("asset_id")
+  type        String
+  description String?
+  date        DateTime @default(now())
+  cost        Decimal? @default(0)
+  notes       String?
+  performedBy String?  @map("performed_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  asset Asset @relation(fields: [assetId], references: [id])
+
+  @@index([assetId])
+  @@map("maintenance_records")
 }

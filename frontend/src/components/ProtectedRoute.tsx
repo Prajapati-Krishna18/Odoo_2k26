@@ -1,9 +1,10 @@
-import { Navigate, Outlet } from 'react-router-dom'
-import { useAuth } from '@/context/AuthContext'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { useAuth, canAccessRoute, getDefaultRoute } from '@/context/AuthContext'
 
 export function ProtectedRoute() {
-  const { isAuthenticated, isLoading } = useAuth()
-  
+  const { isAuthenticated, user, isLoading } = useAuth()
+  const location = useLocation()
+
   if (isLoading) {
     return (
       <div style={{
@@ -24,5 +25,10 @@ export function ProtectedRoute() {
   if (!isAuthenticated) {
     return <Navigate to="/" replace />
   }
+
+  if (!canAccessRoute(user.role, location.pathname)) {
+    return <Navigate to={getDefaultRoute(user.role)} replace />
+  }
+
   return <Outlet />
 }

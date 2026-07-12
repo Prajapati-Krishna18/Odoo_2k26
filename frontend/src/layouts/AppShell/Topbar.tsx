@@ -6,10 +6,10 @@
  * Right:  Notification bell with count badge + User info card
  */
 
-import { useState } from 'react'
-import { useLocation } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { Bell, Search, X } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Bell, Search, X, LogOut, CheckCircle, AlertTriangle, Info } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
 // ─── Page title map ───────────────────────────────────────────────────────────
@@ -41,11 +41,42 @@ interface TopbarProps {
   revealAnimProps: any
 }
 
+const MOCK_NOTIFICATIONS = [
+  { id: 1, type: 'info',    message: 'New asset HP ProBook 450 assigned to you.', time: '2m ago' },
+  { id: 2, type: 'success', message: 'Maintenance request #MR-1042 completed.',   time: '1h ago' },
+  { id: 3, type: 'warning', message: 'Booking #BK-089 expires in 24 hours.',      time: '3h ago' },
+  { id: 4, type: 'info',    message: 'Department head approved allocation #AL-22.',time: '5h ago' },
+]
+
+const NOTIF_ICONS: Record<string, { icon: any; color: string }> = {
+  info:    { icon: Info,        color: 'var(--accent-cyan)' },
+  success: { icon: CheckCircle, color: 'var(--status-active)' },
+  warning: { icon: AlertTriangle, color: 'var(--status-lost)' },
+}
+
 export function Topbar({ revealAnimProps }: TopbarProps) {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const location = useLocation()
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchVal, setSearchVal] = useState('')
+  const [notifOpen, setNotifOpen] = useState(false)
+  const notifRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false)
+      }
+    }
+    if (notifOpen) document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [notifOpen])
+
+  const handleLogout = () => {
+    logout()
+    navigate('/')
+  }
 
   const pageTitle = PAGE_TITLES[location.pathname] ?? 'AssetFlow'
 
@@ -163,50 +194,142 @@ export function Topbar({ revealAnimProps }: TopbarProps) {
         )}
       </div>
 
-      {/* ── Notification Bell ────────────────────────────────────── */}
-      <button
-        style={{
-          position: 'relative',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          color: 'var(--text-muted)',
-          display: 'flex',
-          alignItems: 'center',
-          padding: 6,
-          transition: 'color 0.15s ease',
-        }}
-        title={`${user.notificationCount} unread notifications`}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)' }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)' }}
-      >
-        <Bell size={16} />
-        {user.notificationCount > 0 && (
-          <motion.span
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            style={{
-              position: 'absolute',
-              top: 2,
-              right: 2,
-              width: 14,
-              height: 14,
-              background: 'var(--status-lost)',
-              color: '#fff',
-              fontSize: '0.6rem',
-              fontFamily: "'Space Mono', monospace",
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '50%',
-              border: '1.5px solid var(--bg-surface)',
-            }}
-          >
-            {user.notificationCount}
-          </motion.span>
-        )}
-      </button>
+      {/* ── Notification Bell + Dropdown ────────────────────────── */}
+      <div ref={notifRef} style={{ position: 'relative' }}>
+        <button
+          onClick={() => setNotifOpen((o) => !o)}
+          style={{
+            position: 'relative',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: notifOpen ? 'var(--text-primary)' : 'var(--text-muted)',
+            display: 'flex',
+            alignItems: 'center',
+            padding: 6,
+            transition: 'color 0.15s ease',
+          }}
+          title={`${user.notificationCount} unread notifications`}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)' }}
+          onMouseLeave={(e) => { if (!notifOpen) (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)' }}
+        >
+          <Bell size={16} />
+          {user.notificationCount > 0 && (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              style={{
+                position: 'absolute',
+                top: 2,
+                right: 2,
+                width: 14,
+                height: 14,
+                background: 'var(--status-lost)',
+                color: '#fff',
+                fontSize: '0.6rem',
+                fontFamily: "'Space Mono', monospace",
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                border: '1.5px solid var(--bg-surface)',
+              }}
+            >
+              {user.notificationCount}
+            </motion.span>
+          )}
+        </button>
+
+        <AnimatePresence>
+          {notifOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -6, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.96 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 6px)',
+                right: 0,
+                width: 320,
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-soft)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                zIndex: 100,
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  padding: '10px 14px',
+                  borderBottom: '1px solid var(--border-soft)',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  fontFamily: "'Space Grotesk', system-ui",
+                  letterSpacing: '0.02em',
+                }}
+              >
+                NOTIFICATIONS
+              </div>
+              <div style={{ maxHeight: 260, overflowY: 'auto' }}>
+                {MOCK_NOTIFICATIONS.map((n) => {
+                  const Meta = NOTIF_ICONS[n.type]
+                  const Icon = Meta.icon
+                  return (
+                    <div
+                      key={n.id}
+                      style={{
+                        display: 'flex',
+                        gap: 10,
+                        padding: '10px 14px',
+                        borderBottom: '1px solid var(--border-soft)',
+                        cursor: 'default',
+                        transition: 'background 0.12s ease',
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-surface-raised)' }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
+                    >
+                      <Icon size={14} style={{ color: Meta.color, flexShrink: 0, marginTop: 2 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-primary)', lineHeight: 1.4 }}>
+                          {n.message}
+                        </div>
+                        <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: 3 }}>
+                          {n.time}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div
+                style={{
+                  padding: '8px 14px',
+                  borderTop: '1px solid var(--border-soft)',
+                  textAlign: 'center',
+                }}
+              >
+                <button
+                  onClick={() => setNotifOpen(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--accent-cyan)',
+                    fontSize: '0.7rem',
+                    cursor: 'pointer',
+                    fontFamily: "'Inter', system-ui",
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  VIEW ALL
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* ── User Info ────────────────────────────────────────────── */}
       <div
@@ -267,6 +390,26 @@ export function Topbar({ revealAnimProps }: TopbarProps) {
           </span>
         </div>
       </div>
+
+      {/* ── Logout ────────────────────────────────────────────────── */}
+      <button
+        onClick={handleLogout}
+        title="Logout"
+        style={{
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          color: 'var(--text-muted)',
+          display: 'flex',
+          alignItems: 'center',
+          padding: 6,
+          transition: 'color 0.15s ease',
+        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--status-lost)' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)' }}
+      >
+        <LogOut size={16} />
+      </button>
     </motion.header>
   )
 }

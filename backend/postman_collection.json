@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "AssetFlow — ERP System APIs",
-    "description": "Auth, RBAC, Organisation Setup, Dashboard, Notifications, Activity Logs, Global Search, Shared Uploads, Reports, Analytics, System Diagnostics, and Settings endpoints for the AssetFlow ERP system.",
+    "description": "Auth, RBAC, Organisation Setup, Dashboard, Notifications, Activity Logs, Global Search, Shared Uploads, Reports, Analytics, System Diagnostics, Settings, and AI Assistant endpoints for the AssetFlow ERP system.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -545,6 +545,89 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"companyName\": \"AssetFlow ERP Inc.\",\n  \"timezone\": \"Asia/Kolkata\",\n  \"theme\": \"system\",\n  \"auditRetentionDays\": 120\n}"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "AI Assistant",
+      "item": [
+        {
+          "name": "Chat (Asset Owner Query)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ai/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["ai", "chat"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Who has Laptop AF-001?\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Chat (Dashboard Summary Query)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ai/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["ai", "chat"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Summarise the dashboard and active stats\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Chat (Department Query)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ai/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["ai", "chat"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Tell me about the Engineering department\"\n}"
             }
           },
           "response": []
