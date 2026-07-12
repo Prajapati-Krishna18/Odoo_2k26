@@ -1,13 +1,12 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Eye, EyeOff, Layers } from 'lucide-react'
-import { useAuth, ALL_ROLES, type UserRole } from '@/context/AuthContext'
+import { useAuth } from '@/context/AuthContext'
 
 export default function LoginPage() {
-  const { login, setRole } = useAuth()
+  const { login } = useAuth()
   const navigate = useNavigate()
 
-  const [selectedRole, setSelectedRole] = useState<UserRole>('Employee')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
