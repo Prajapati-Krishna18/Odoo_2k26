@@ -1,29 +1,24 @@
-import { Router } from 'express';
+/**
+ * @file    asset.routes.ts
+ * @desc    Routes for Asset management.
+ *          Protected by authenticate and authorize(ADMIN).
+ */
+
+import { Router } from "express";
+import { asyncHandler } from "../../utils/asyncHandler.js";
+import { authenticate, authorize } from "../../middleware/auth.middleware.js";
+import * as assetController from "./asset.controller.js";
 
 const router = Router();
 
-// POST /api/assets - Create a new asset
-// router.post('/', assetController.createAsset);
+// Apply auth protection globally to all asset routes
+router.use(authenticate, authorize("ADMIN"));
 
-// GET /api/assets - Get all assets with pagination and filtering
-// router.get('/', assetController.getAssets);
+router.post("/", asyncHandler(assetController.create));
+router.get("/", asyncHandler(assetController.list));
+router.get("/:id", asyncHandler(assetController.getDetails));
+router.patch("/:id", asyncHandler(assetController.update));
+router.patch("/:id/status", asyncHandler(assetController.updateStatus));
+router.delete("/:id", asyncHandler(assetController.remove));
 
-// GET /api/assets/:id - Get asset by ID
-// router.get('/:id', assetController.getAssetById);
-
-// PUT /api/assets/:id - Update asset
-// router.put('/:id', assetController.updateAsset);
-
-// DELETE /api/assets/:id - Delete asset
-// router.delete('/:id', assetController.deleteAsset);
-
-// PATCH /api/assets/:id/status - Update asset status
-// router.patch('/:id/status', assetController.updateAssetStatus);
-
-// GET /api/assets/search - Search assets
-// router.get('/search', assetController.searchAssets);
-
-// GET /api/assets/filter - Filter assets
-// router.get('/filter', assetController.filterAssets);
-
-export { router as assetRoutes };
+export default router;

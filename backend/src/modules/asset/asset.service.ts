@@ -1,41 +1,92 @@
-import { AssetRepository } from './asset.repository';
+/**
+ * @file    asset.service.ts
+ * @desc    Business logic for Asset module.
+ */
 
-export class AssetService {
-  private readonly assetRepository: AssetRepository;
+import { ApiError } from "../../utils/ApiError.js";
+import * as assetRepo from "./asset.repository.js";
 
-  constructor(assetRepository: AssetRepository) {
-    this.assetRepository = assetRepository;
+// ── Service Operations ────────────────────────────────────────
+
+export async function createAsset(data: {
+  assetTag: string;
+  serialNumber: string;
+  assetName: string;
+  description?: string;
+  manufacturer: string;
+  modelNumber: string;
+  purchaseDate: Date;
+  purchaseCost: number;
+  warrantyExpiry?: Date;
+  location: string;
+  categoryId: string;
+  status: string;
+  condition: string;
+  ownerId?: string;
+  departmentId?: string;
+  qrCode?: string;
+}) {
+  const existingAssetByTag = await assetRepo.findByAssetTag(data.assetTag);
+  if (existingAssetByTag) {
+    throw ApiError.conflict("Asset with this tag already exists");
   }
 
-  async createAsset(data: unknown): Promise<unknown> {
-    throw new Error('Not Implemented');
+  const existingAssetBySerial = await assetRepo.findBySerialNumber(data.serialNumber);
+  if (existingAssetBySerial) {
+    throw ApiError.conflict("Asset with this serial number already exists");
   }
 
-  async getAssets(params: unknown): Promise<unknown> {
-    throw new Error('Not Implemented');
+  return assetRepo.create(data);
+}
+
+export async function listAssets(query: any) {
+  const page = query.page ?? 1;
+  const limit = query.limit ?? 10;
+
+  const result = await assetRepo.list({ page, limit });
+
+  return {
+    assets: result.items,
+    pagination: {
+      total: result.total,
+      page,
+      limit,
+      totalPages: Math.ceil(result.total / limit),
+    },
+  };
+}
+
+export async function getAssetDetails(id: string) {
+  const asset = await assetRepo.findById(id);
+  if (!asset) {
+    throw ApiError.notFound("Asset not found");
+  }
+  return asset;
+}
+
+export async function updateAsset(id: string, data: any) {
+  const asset = await assetRepo.findById(id);
+  if (!asset) {
+    throw ApiError.notFound("Asset not found");
   }
 
-  async getAssetById(id: string): Promise<unknown> {
-    throw new Error('Not Implemented');
+  return assetRepo.update(id, data);
+}
+
+export async function updateAssetStatus(id: string, status: string) {
+  const asset = await assetRepo.findById(id);
+  if (!asset) {
+    throw ApiError.notFound("Asset not found");
   }
 
-  async updateAsset(id: string, data: unknown): Promise<unknown> {
-    throw new Error('Not Implemented');
+  return assetRepo.updateStatus(id, status);
+}
+
+export async function deleteAsset(id: string) {
+  const asset = await assetRepo.findById(id);
+  if (!asset) {
+    throw ApiError.notFound("Asset not found");
   }
 
-  async deleteAsset(id: string): Promise<void> {
-    throw new Error('Not Implemented');
-  }
-
-  async updateAssetStatus(id: string, status: string): Promise<unknown> {
-    throw new Error('Not Implemented');
-  }
-
-  async searchAssets(query: string, params: unknown): Promise<unknown> {
-    throw new Error('Not Implemented');
-  }
-
-  async filterAssets(filters: unknown): Promise<unknown> {
-    throw new Error('Not Implemented');
-  }
+  return assetRepo.remove(id);
 }

@@ -18,19 +18,22 @@ export interface AssetDTO {
 }
 
 export interface CreateAssetDTO {
-  name: string;
-  serialNumber?: string;
+  assetTag: string;
+  serialNumber: string;
+  assetName: string;
   description?: string;
-  status?: string;
-  condition?: string;
-  categoryId?: string;
-  locationId?: string;
-  purchaseDate?: Date;
-  purchaseCost?: number;
-  currentValue?: number;
-  warrantyExpiry?: Date;
-  lastMaintenanceDate?: Date;
-  nextMaintenanceDate?: Date;
+  manufacturer: string;
+  modelNumber: string;
+  purchaseDate: string;
+  purchaseCost: number;
+  warrantyExpiry?: string;
+  location: string;
+  categoryId: string;
+  status: string;
+  condition: string;
+  ownerId?: string;
+  departmentId?: string;
+  qrCode?: string;
 }
 
 export interface UpdateAssetDTO {
