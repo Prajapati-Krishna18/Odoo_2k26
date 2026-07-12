@@ -23,6 +23,7 @@ import reportRouter from "../modules/report/report.routes.js";
 import analyticsRouter from "../modules/analytics/analytics.routes.js";
 import settingsRouter from "../modules/settings/settings.routes.js";
 import systemRouter from "../modules/system/system.routes.js";
+import aiRouter from "../modules/ai/routes/ai.routes.js";
 
 const router = Router();
 
@@ -65,5 +66,6 @@ router.use("/reports", reportRouter);
 router.use("/analytics", analyticsRouter);
 router.use("/settings", settingsRouter);
 router.use("/system", systemRouter);
+router.use("/ai", aiRouter);
 
 export default router;
