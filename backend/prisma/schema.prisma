@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────
 // AssetFlow — Prisma Schema
-// Phase 2: Authentication & RBAC models
+// Phase 3: Organization Setup
 // ─────────────────────────────────────────────────────────────
 
 generator client {
@@ -11,9 +11,20 @@ datasource db {
   provider = "postgresql"
 }
 
+// ── Enums ────────────────────────────────────────────────────
+
+enum DepartmentStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CategoryStatus {
+  ACTIVE
+  INACTIVE
+}
+
 // ── Role ─────────────────────────────────────────────────────
 
-/// Static roles: ADMIN, ASSET_MANAGER, DEPARTMENT_HEAD, EMPLOYEE
 model Role {
   id        String   @id @default(uuid())
   name      String   @unique
@@ -41,8 +52,18 @@ model User {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  role          Role          @relation(fields: [roleId], references: [id])
+  // Organization Setup fields
+  employeeCode String?   @unique @map("employee_code")
+  departmentId String?   @map("department_id")
+  designation  String?
+  joiningDate  DateTime? @map("joining_date")
+
+  role          Role           @relation(fields: [roleId], references: [id])
   refreshTokens RefreshToken[]
+
+  // Relations
+  department       Department? @relation("DepartmentEmployees", fields: [departmentId], references: [id])
+  headedDepartment Department? @relation("DepartmentHead")
 
   @@map("users")
 }
@@ -60,4 +81,43 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+// ── Department ───────────────────────────────────────────────
+
+model Department {
+  id                 String           @id @default(uuid())
+  name               String
+  code               String           @unique
+  description        String?
+  parentDepartmentId String?          @map("parent_department_id")
+  departmentHeadId   String?          @unique @map("department_head_id")
+  status             DepartmentStatus @default(ACTIVE)
+  isDeleted          Boolean          @default(false) @map("is_deleted")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  parentDepartment Department?  @relation("SubDepartments", fields: [parentDepartmentId], references: [id])
+  childDepartments Department[] @relation("SubDepartments")
+  departmentHead   User?        @relation("DepartmentHead", fields: [departmentHeadId], references: [id])
+  employees        User[]       @relation("DepartmentEmployees")
+
+  @@map("departments")
+}
+
+// ── Asset Category ───────────────────────────────────────────
+
+model AssetCategory {
+  id               String         @id @default(uuid())
+  name             String         @unique
+  description      String?
+  icon             String?
+  requiresWarranty Boolean        @default(false) @map("requires_warranty")
+  status           CategoryStatus @default(ACTIVE)
+  isDeleted        Boolean        @default(false) @map("is_deleted")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  @@map("asset_categories")
 }

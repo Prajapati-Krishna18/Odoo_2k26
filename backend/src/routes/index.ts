@@ -12,6 +12,9 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 // ── Module routers ───────────────────────────────────────────
 import authRouter from "../modules/auth/auth.routes.js";
+import departmentRouter from "../modules/department/department.routes.js";
+import categoryRouter from "../modules/category/category.routes.js";
+import employeeRouter from "../modules/employee/employee.routes.js";
 
 const router = Router();
 
@@ -43,5 +46,8 @@ router.get(
 // ── Module routes ────────────────────────────────────────────
 
 router.use("/auth", authRouter);
+router.use("/departments", departmentRouter);
+router.use("/categories", categoryRouter);
+router.use("/employees", employeeRouter);
 
 export default router;

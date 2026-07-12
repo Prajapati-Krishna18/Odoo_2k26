@@ -37,6 +37,8 @@ const ADMIN_USER = {
   email: "admin@assetflow.com",
   password: "Admin@123",
   phone: "0000000000",
+  employeeCode: "EMP-ADMIN",
+  designation: "System Administrator",
 };
 
 async function main(): Promise<void> {
@@ -65,7 +67,11 @@ async function main(): Promise<void> {
 
   await prisma.user.upsert({
     where: { email: ADMIN_USER.email },
-    update: {},
+    update: {
+      employeeCode: ADMIN_USER.employeeCode,
+      designation: ADMIN_USER.designation,
+      joiningDate: new Date(),
+    },
     create: {
       fullName: ADMIN_USER.fullName,
       email: ADMIN_USER.email,
@@ -74,6 +80,9 @@ async function main(): Promise<void> {
       roleId: adminRole.id,
       isActive: true,
       emailVerified: true,
+      employeeCode: ADMIN_USER.employeeCode,
+      designation: ADMIN_USER.designation,
+      joiningDate: new Date(),
     },
   });
   console.log(`   ✅  Admin: ${ADMIN_USER.email}\n`);
