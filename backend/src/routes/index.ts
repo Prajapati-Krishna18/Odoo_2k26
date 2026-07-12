@@ -2,16 +2,19 @@
  * @file    routes/index.ts
  * @desc    Root API router.
  *
- *          Module-level routers (auth, asset, employee, etc.) will be
- *          mounted here in subsequent phases.
- *
- *          Currently exposes only the /health endpoint.
+ *          Mounts module-level routers and the health-check endpoint.
  */
 
 import { Router } from "express";
 import { prisma } from "../config/prisma.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+
+// ── Module routers ───────────────────────────────────────────
+import authRouter from "../modules/auth/auth.routes.js";
+import departmentRouter from "../modules/department/department.routes.js";
+import categoryRouter from "../modules/category/category.routes.js";
+import employeeRouter from "../modules/employee/employee.routes.js";
 
 const router = Router();
 
@@ -39,5 +42,12 @@ router.get(
     res.status(response.statusCode).json(response);
   })
 );
+
+// ── Module routes ────────────────────────────────────────────
+
+router.use("/auth", authRouter);
+router.use("/departments", departmentRouter);
+router.use("/categories", categoryRouter);
+router.use("/employees", employeeRouter);
 
 export default router;

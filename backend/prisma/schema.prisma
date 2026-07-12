@@ -1,5 +1,7 @@
-// Prisma Schema for AssetFlow
-// Only generator + datasource — models will be added in subsequent phases.
+// ─────────────────────────────────────────────────────────────
+// AssetFlow — Prisma Schema
+// Phase 3: Organization Setup
+// ─────────────────────────────────────────────────────────────
 
 generator client {
   provider = "prisma-client-js"
@@ -7,4 +9,115 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// ── Enums ────────────────────────────────────────────────────
+
+enum DepartmentStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CategoryStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// ── Role ─────────────────────────────────────────────────────
+
+model Role {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users User[]
+
+  @@map("roles")
+}
+
+// ── User ─────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid())
+  fullName      String    @map("full_name")
+  email         String    @unique
+  password      String
+  phone         String
+  profileImage  String?   @map("profile_image")
+  roleId        String    @map("role_id")
+  isActive      Boolean   @default(true) @map("is_active")
+  emailVerified Boolean   @default(false) @map("email_verified")
+  lastLogin     DateTime? @map("last_login")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Organization Setup fields
+  employeeCode String?   @unique @map("employee_code")
+  departmentId String?   @map("department_id")
+  designation  String?
+  joiningDate  DateTime? @map("joining_date")
+
+  role          Role           @relation(fields: [roleId], references: [id])
+  refreshTokens RefreshToken[]
+
+  // Relations
+  department       Department? @relation("DepartmentEmployees", fields: [departmentId], references: [id])
+  headedDepartment Department? @relation("DepartmentHead")
+
+  @@map("users")
+}
+
+// ── Refresh Token ────────────────────────────────────────────
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ── Department ───────────────────────────────────────────────
+
+model Department {
+  id                 String           @id @default(uuid())
+  name               String
+  code               String           @unique
+  description        String?
+  parentDepartmentId String?          @map("parent_department_id")
+  departmentHeadId   String?          @unique @map("department_head_id")
+  status             DepartmentStatus @default(ACTIVE)
+  isDeleted          Boolean          @default(false) @map("is_deleted")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  parentDepartment Department?  @relation("SubDepartments", fields: [parentDepartmentId], references: [id])
+  childDepartments Department[] @relation("SubDepartments")
+  departmentHead   User?        @relation("DepartmentHead", fields: [departmentHeadId], references: [id])
+  employees        User[]       @relation("DepartmentEmployees")
+
+  @@map("departments")
+}
+
+// ── Asset Category ───────────────────────────────────────────
+
+model AssetCategory {
+  id               String         @id @default(uuid())
+  name             String         @unique
+  description      String?
+  icon             String?
+  requiresWarranty Boolean        @default(false) @map("requires_warranty")
+  status           CategoryStatus @default(ACTIVE)
+  isDeleted        Boolean        @default(false) @map("is_deleted")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  @@map("asset_categories")
 }
