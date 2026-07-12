@@ -2,7 +2,7 @@
  * @file    seed.ts
  * @desc    Prisma database seed script.
  *
- *          Creates the four default roles and one admin user.
+ *          Creates default roles for RBAC system.
  *          Idempotent — safe to run multiple times.
  *
  *          Usage:  npx prisma db seed
@@ -10,7 +10,6 @@
 
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import path from "node:path";
 
@@ -30,21 +29,12 @@ const prisma = new PrismaClient({ adapter });
 // Seed data
 // ────────────────────────────────────────────────────────────
 
-const ROLES = ["ADMIN", "ASSET_MANAGER", "DEPARTMENT_HEAD", "EMPLOYEE"];
-
-const ADMIN_USER = {
-  fullName: "System Admin",
-  email: "admin@assetflow.com",
-  password: "Admin@123",
-  phone: "0000000000",
-  employeeCode: "EMP-ADMIN",
-  designation: "System Administrator",
-};
+const ROLES = ["ADMIN", "EMPLOYEE", "ASSET_MANAGER", "IT_MANAGER", "AUDITOR"];
 
 async function main(): Promise<void> {
-  console.log("🌱  Seeding database...\n");
+  console.log("🌱  Seeding database roles...\n");
 
-  // 1 — Upsert roles
+  // Upsert roles - idempotent operation
   for (const roleName of ROLES) {
     await prisma.role.upsert({
       where: { name: roleName },
@@ -54,40 +44,7 @@ async function main(): Promise<void> {
     console.log(`   ✅  Role: ${roleName}`);
   }
 
-  // 2 — Upsert admin user
-  const adminRole = await prisma.role.findUnique({
-    where: { name: "ADMIN" },
-  });
-
-  if (!adminRole) {
-    throw new Error("ADMIN role not found after seeding");
-  }
-
-  const hashedPassword = await bcrypt.hash(ADMIN_USER.password, 12);
-
-  await prisma.user.upsert({
-    where: { email: ADMIN_USER.email },
-    update: {
-      employeeCode: ADMIN_USER.employeeCode,
-      designation: ADMIN_USER.designation,
-      joiningDate: new Date(),
-    },
-    create: {
-      fullName: ADMIN_USER.fullName,
-      email: ADMIN_USER.email,
-      password: hashedPassword,
-      phone: ADMIN_USER.phone,
-      roleId: adminRole.id,
-      isActive: true,
-      emailVerified: true,
-      employeeCode: ADMIN_USER.employeeCode,
-      designation: ADMIN_USER.designation,
-      joiningDate: new Date(),
-    },
-  });
-  console.log(`   ✅  Admin: ${ADMIN_USER.email}\n`);
-
-  console.log("🎉  Seeding complete!");
+  console.log("\n🎉  Role seeding complete!");
 }
 
 main()

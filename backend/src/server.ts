@@ -12,6 +12,7 @@ import { env } from "./config/env.js";
 import { prisma } from "./config/prisma.js";
 import app from "./app.js";
 import { APP_NAME } from "./constants/app.js";
+import { seedDefaultRoles } from "./utils/seedRoles.js";
 
 // ────────────────────────────────────────────────────────────
 // Start server
@@ -23,7 +24,10 @@ async function bootstrap(): Promise<void> {
     await prisma.$connect();
     console.log("✅  Database connected successfully");
 
-    // 2 — Start listening
+    // 2 — Seed default roles if missing
+    await seedDefaultRoles();
+
+    // 3 — Start listening
     const server = app.listen(env.PORT, () => {
       console.log(
         `🚀  ${APP_NAME} server running on http://localhost:${env.PORT} [${env.NODE_ENV}]`

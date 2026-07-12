@@ -113,3 +113,28 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
   const response = ApiResponse.ok("User profile retrieved", user);
   res.status(response.statusCode).json(response);
 };
+
+// ────────────────────────────────────────────────────────────
+// PATCH /api/auth/users/:id/role
+// ────────────────────────────────────────────────────────────
+
+export const updateUserRole = async (req: Request, res: Response): Promise<void> => {
+  const userId = req.params["id"] as string;
+  const { role } = req.body;
+
+  if (!userId) {
+    throw ApiError.badRequest("User ID is required");
+  }
+
+  if (!role) {
+    throw ApiError.badRequest("Role is required");
+  }
+
+  if (!req.user) {
+    throw ApiError.unauthorized("Authentication required");
+  }
+
+  const user = await authService.updateUserRole(userId, role, req.user.id);
+  const response = ApiResponse.ok("User role updated successfully", user);
+  res.status(response.statusCode).json(response);
+};
