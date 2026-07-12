@@ -19,6 +19,8 @@ import notificationRouter from "../modules/notification/notification.routes.js";
 import activityRouter from "../modules/activity/activity.routes.js";
 import uploadRouter from "../modules/upload/upload.routes.js";
 import searchRouter from "../modules/search/search.routes.js";
+import reportRouter from "../modules/report/report.routes.js";
+import analyticsRouter from "../modules/analytics/analytics.routes.js";
 
 const router = Router();
 
@@ -57,5 +59,7 @@ router.use("/notifications", notificationRouter);
 router.use("/activities", activityRouter);
 router.use("/upload", uploadRouter);
 router.use("/search", searchRouter);
+router.use("/reports", reportRouter);
+router.use("/analytics", analyticsRouter);
 
 export default router;
