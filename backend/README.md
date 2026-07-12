@@ -181,6 +181,68 @@ backend/
 
 ---
 
+## Resource Booking & Maintenance System Spec
+
+### 1. New API Modules & Endpoints
+
+#### Resources (`/api/resources`)
+- `GET /` — List resources (filters: `type`, `status`)
+- `GET /:id` — Retrieve a single resource
+- `POST /` — Add new resource (Admin/Asset Manager only)
+- `PATCH /:id` — Edit resource details (Admin/Asset Manager only)
+- `DELETE /:id` — Delete a resource (Admin only)
+
+#### Bookings (`/api/bookings`)
+- `GET /` — List bookings (filters: `resourceId`, `status`, `type`, `userId`)
+- `GET /calendar` — Range-based bookings list
+- `GET /calendar/availability` — Hourly/30-min block availability array for a resource on a specific date
+- `POST /` — Request a booking (checks capacities, trip purpose, and locks)
+- `PATCH /:id` — Update pending booking (Owner or Admin/Manager only)
+- `PUT /:id/cancel` — Cancel active booking (Owner or Admin/Manager only)
+- `PUT /:id/approve` — Approve pending booking (Admin/Manager only)
+- `PUT /:id/reject` — Reject pending booking with reason (Admin/Manager only)
+
+#### Maintenance (`/api/maintenance`)
+- `GET /` — List requests (filters: `resourceId`, `status`, `reported_by`)
+- `POST /` — Report a defect or submit a repair request
+- `PATCH /:id` — Edit reported issue
+- `PUT /:id/approve` — Schedule and approve maintenance (cancels overlapping bookings)
+- `PUT /:id/reject` — Reject maintenance request with reason
+- `PUT /:id/start` — Mark scheduled task as `IN_PROGRESS` (sets resource status to `MAINTENANCE`)
+- `PUT /:id/complete` — Mark task as `COMPLETED` (sets resource status back to `AVAILABLE`)
+- `PUT /:id/cancel` — Cancel maintenance task
+
+#### Notifications (`/api/notifications`)
+- `GET /` — Fetch notifications list for logged-in user
+- `PUT /read-all` — Mark all unread notifications as read
+- `PUT /:id/read` — Mark a single notification as read
+- `DELETE /:id` — Delete notification item
+
+---
+
+### 2. Core Design Decisions
+
+#### A. Equipment Multi-Unit Availability Logic
+For assets where quantity > 1 (e.g. 10 identical laptops under one resource record):
+- We do not lock the resource entirely for overlapping windows.
+- Availability check dynamically queries the maximum overlap in any selected slot.
+- Booking creation executes inside an interactive transaction using Postgres `SELECT FOR UPDATE` on the resource row to serialize concurrent writes and prevent race conditions. If `current_overlap_count + 1 > quantity`, the booking is rejected with `409 Conflict`.
+
+#### B. Maintenance Approval & Auto-Cancel Policy
+By default, approving a maintenance request automatically:
+1. Schedules the maintenance window.
+2. Identifies all overlapping `PENDING` and `APPROVED` bookings.
+3. Automatically marks them as `CANCELLED` with a description detailing the maintenance schedule.
+4. Generates instant notifications for all affected booking owners explaining the cancellation reason.
+*Can be toggled to "Block new bookings only" by setting `MAINTENANCE_AUTO_CANCEL = false` in `maintenance.service.ts`.*
+
+#### C. Background Cron Jobs & Scheduling
+Background checking is handled using `node-cron`:
+- **Maintenance Starting Soon**: Runs every hour to check for approved requests starting within 24 hours. Warns both the reporter and the manager.
+- **Upcoming Booking Reminder**: Runs every 15 minutes to warn users 1 hour before their booking starts.
+
+---
+
 ## License
 
 ISC

@@ -47,18 +47,20 @@ app.use(helmet());
 app.use(cors(corsOptions));
 
 // Rate limiting
-app.use(
-  rateLimit({
-    windowMs: RATE_LIMIT_WINDOW_MS,
-    max: RATE_LIMIT_MAX_REQUESTS,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: {
-      success: false,
-      message: "Too many requests, please try again later.",
-    },
-  })
-);
+if (process.env["NODE_ENV"] !== "development") {
+  app.use(
+    rateLimit({
+      windowMs: RATE_LIMIT_WINDOW_MS,
+      max: RATE_LIMIT_MAX_REQUESTS,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: {
+        success: false,
+        message: "Too many requests, please try again later.",
+      },
+    })
+  );
+}
 
 // Body parsing
 app.use(express.json({ limit: "16kb" }));

@@ -12,6 +12,7 @@ import { env } from "./config/env.js";
 import { prisma } from "./config/prisma.js";
 import app from "./app.js";
 import { APP_NAME } from "./constants/app.js";
+import { initJobs } from "./jobs/index.js";
 
 // ────────────────────────────────────────────────────────────
 // Start server
@@ -22,6 +23,9 @@ async function bootstrap(): Promise<void> {
     // 1 — Connect to the database
     await prisma.$connect();
     console.log("✅  Database connected successfully");
+
+    // Initialize scheduled background jobs
+    initJobs();
 
     // 2 — Start listening
     const server = app.listen(env.PORT, () => {
