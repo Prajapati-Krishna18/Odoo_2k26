@@ -24,6 +24,11 @@ import analyticsRouter from "../modules/analytics/analytics.routes.js";
 import settingsRouter from "../modules/settings/settings.routes.js";
 import systemRouter from "../modules/system/system.routes.js";
 
+// Restored asset/booking/maintenance routes
+import resourceRouter from "../modules/asset/resource.routes.js";
+import bookingRouter from "../modules/booking/booking.routes.js";
+import maintenanceRouter from "../modules/maintenance/maintenance.routes.js";
+
 const router = Router();
 
 // ── Health check ─────────────────────────────────────────────
@@ -65,5 +70,10 @@ router.use("/reports", reportRouter);
 router.use("/analytics", analyticsRouter);
 router.use("/settings", settingsRouter);
 router.use("/system", systemRouter);
+
+// Restored routes
+router.use("/assets", resourceRouter);
+router.use("/bookings", bookingRouter);
+router.use("/maintenance", maintenanceRouter);
 
 export default router;

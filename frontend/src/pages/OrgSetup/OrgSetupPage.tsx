@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Building2,
   FolderTree,
@@ -11,6 +11,7 @@ import {
   Info,
 } from 'lucide-react'
 import { useAuth, type UserRole } from '@/context/AuthContext'
+import { orgApi } from '@/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,54 +39,7 @@ interface Employee {
   status: 'Active' | 'Inactive'
 }
 
-// ─── Mock Database ────────────────────────────────────────────────────────────
-
-const INITIAL_DEPARTMENTS: Department[] = [
-  { id: 'd1', name: 'Engineering', head: 'Sarah Chen', parentDept: 'Technology Group', employeeCount: 48, status: 'Active' },
-  { id: 'd2', name: 'Marketing', head: 'Neha Gupta', parentDept: 'Corporate Operations', employeeCount: 15, status: 'Active' },
-  { id: 'd3', name: 'Logistics', head: 'Vikram Singh', parentDept: 'Corporate Operations', employeeCount: 12, status: 'Active' },
-  { id: 'd4', name: 'IT Support', head: 'Rajiv Kumar', parentDept: 'Technology Group', employeeCount: 8, status: 'Active' },
-  { id: 'd5', name: 'Legal & Compliance', head: 'Ananya Rao', parentDept: 'Corporate Operations', employeeCount: 4, status: 'Inactive' },
-]
-
-const INITIAL_CATEGORIES: AssetCategory[] = [
-  {
-    id: 'c1',
-    name: 'Laptops & Workstations',
-    customFields: [
-      { key: 'Warranty Period', value: '3 Years' },
-      { key: 'Default OS', value: 'Windows 11 Pro / macOS' },
-      { key: 'Device Tier', value: 'Developer / Standard' },
-    ],
-  },
-  {
-    id: 'c2',
-    name: 'Networking Hardware',
-    customFields: [
-      { key: 'Warranty Period', value: '5 Years' },
-      { key: 'Form Factor', value: 'Rackmount (1U/2U)' },
-      { key: 'Default Speed', value: '10 Gbps' },
-    ],
-  },
-  {
-    id: 'c3',
-    name: 'Mobile Devices',
-    customFields: [
-      { key: 'Warranty Period', value: '1 Year' },
-      { key: 'Default OS', value: 'Android / iOS' },
-    ],
-  },
-]
-
-const INITIAL_EMPLOYEES: Employee[] = [
-  { id: 'e1', name: 'Sarah Chen', email: 'sarah.chen@assetflow.com', department: 'Engineering', role: 'Department Head', status: 'Active' },
-  { id: 'e2', name: 'Neha Gupta', email: 'neha.gupta@assetflow.com', department: 'Marketing', role: 'Department Head', status: 'Active' },
-  { id: 'e3', name: 'Vikram Singh', email: 'vikram.singh@assetflow.com', department: 'Logistics', role: 'Asset Manager', status: 'Active' },
-  { id: 'e4', name: 'Rajiv Kumar', email: 'rajiv.kumar@assetflow.com', department: 'IT Support', role: 'Employee', status: 'Active' },
-  { id: 'e5', name: 'Priya Sharma', email: 'priya.sharma@assetflow.com', department: 'Engineering', role: 'Admin', status: 'Active' },
-  { id: 'e6', name: 'Aarav Mehta', email: 'aarav.mehta@assetflow.com', department: 'Engineering', role: 'Employee', status: 'Active' },
-  { id: 'e7', name: 'Rohan Roy', email: 'rohan.roy@assetflow.com', department: 'Legal & Compliance', role: 'Employee', status: 'Inactive' },
-]
+// Mock data has been removed to enforce database flow.
 
 export default function OrgSetupPage() {
   const { user } = useAuth()
@@ -140,30 +94,82 @@ function AdminOrgSetup() {
   const [activeTab, setActiveTab] = useState<'departments' | 'categories' | 'employees'>('departments')
 
   // Tab A state
-  const [depts, setDepts] = useState<Department[]>(INITIAL_DEPARTMENTS)
+  const [depts, setDepts] = useState<Department[]>([])
   const [showAddDept, setShowAddDept] = useState(false)
   const [newDept, setNewDept] = useState({ name: '', head: '', parentDept: '', status: 'Active' as 'Active' | 'Inactive' })
 
   // Tab B state
-  const [categories, setCategories] = useState<AssetCategory[]>(INITIAL_CATEGORIES)
+  const [categories, setCategories] = useState<AssetCategory[]>([])
   const [showAddCat, setShowAddCat] = useState(false)
   const [newCatName, setNewCatName] = useState('')
   const [newCatFields, setNewCatFields] = useState<{ key: string; value: string }[]>([{ key: '', value: '' }])
 
   // Tab C state
-  const [employees, setEmployees] = useState<Employee[]>(INITIAL_EMPLOYEES)
+  const [employees, setEmployees] = useState<Employee[]>([])
   const [rolePromoteEmp, setRolePromoteEmp] = useState<Employee | null>(null)
   const [promoteTargetRole, setPromoteTargetRole] = useState<UserRole>('Employee')
 
+  const fetchAllData = () => {
+    Promise.all([orgApi.getDepartments(), orgApi.getCategories(), orgApi.getEmployees()])
+      .then(([deptData, catData, empData]) => {
+        const mappedDepts = deptData.map((d) => ({
+          id: d.id,
+          name: d.name,
+          head: d.headName || 'No Head Assigned',
+          parentDept: d.parentDept || '',
+          employeeCount: d._count?.users || 0,
+          status: d.status === 'INACTIVE' ? 'Inactive' : ('Active' as any),
+        }))
+        setDepts(mappedDepts)
+
+        const mappedCats = catData.map((c) => ({
+          id: c.id,
+          name: c.name,
+          customFields: (c.customFields || []) as any,
+        }))
+        setCategories(mappedCats)
+
+        const mappedEmps = empData.map((e) => ({
+          id: e.id,
+          name: e.fullName,
+          email: e.email,
+          department: e.department?.name || 'Operations',
+          role: (e.role === 'ADMIN' ? 'Admin' : e.role === 'ASSET_MANAGER' ? 'Asset Manager' : e.role === 'DEPARTMENT_HEAD' ? 'Department Head' : 'Employee') as any,
+          status: e.status === 'INACTIVE' ? 'Inactive' : ('Active' as any),
+        }))
+        setEmployees(mappedEmps)
+      })
+      .catch((err) => {
+        console.error('Failed to load setup page details:', err)
+      })
+  }
+
+  useEffect(() => {
+    fetchAllData()
+  }, [])
+
   // ── Handlers ──
   
-  const handleAddDept = (e: React.FormEvent) => {
+  const handleAddDept = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newDept.name || !newDept.head) return
-    const id = `d${depts.length + 1}`
-    setDepts([...depts, { ...newDept, id, employeeCount: 0 }])
-    setNewDept({ name: '', head: '', parentDept: '', status: 'Active' })
-    setShowAddDept(false)
+    if (!newDept.name) return
+    try {
+      const headId = employees.find((emp) => emp.name === newDept.head)?.id
+      const parentId = depts.find((d) => d.name === newDept.parentDept)?.id
+      const code = newDept.name.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase() + Math.floor(100 + Math.random() * 900)
+
+      await orgApi.createDepartment({
+        name: newDept.name,
+        code,
+        departmentHeadId: headId || undefined,
+        parentDepartmentId: parentId || undefined,
+      })
+      fetchAllData()
+      setNewDept({ name: '', head: '', parentDept: '', status: 'Active' })
+      setShowAddDept(false)
+    } catch (err) {
+      console.error(err)
+    }
   }
 
   const handleAddCatField = () => {
@@ -182,23 +188,34 @@ function AdminOrgSetup() {
     setNewCatFields(fields)
   }
 
-  const handleAddCategory = (e: React.FormEvent) => {
+  const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newCatName) return
-    const id = `c${categories.length + 1}`
-    const filteredFields = newCatFields.filter((f) => f.key.trim() !== '')
-    setCategories([...categories, { id, name: newCatName, customFields: filteredFields }])
-    setNewCatName('')
-    setNewCatFields([{ key: '', value: '' }])
-    setShowAddCat(false)
+    try {
+      const filteredFields = newCatFields.filter((f) => f.key.trim() !== '')
+      await orgApi.createCategory({
+        name: newCatName,
+        customFields: filteredFields,
+      })
+      fetchAllData()
+      setNewCatName('')
+      setNewCatFields([{ key: '', value: '' }])
+      setShowAddCat(false)
+    } catch (err) {
+      console.error(err)
+    }
   }
 
-  const handleConfirmPromotion = () => {
+  const handleConfirmPromotion = async () => {
     if (!rolePromoteEmp) return
-    setEmployees(employees.map((emp) => 
-      emp.id === rolePromoteEmp.id ? { ...emp, role: promoteTargetRole } : emp
-    ))
-    setRolePromoteEmp(null)
+    try {
+      const dbRole = promoteTargetRole === 'Admin' ? 'ADMIN' : promoteTargetRole === 'Asset Manager' ? 'ASSET_MANAGER' : promoteTargetRole === 'Department Head' ? 'DEPARTMENT_HEAD' : 'EMPLOYEE'
+      await orgApi.promoteEmployee(rolePromoteEmp.id, dbRole)
+      fetchAllData()
+      setRolePromoteEmp(null)
+    } catch (err) {
+      console.error(err)
+    }
   }
 
   return (

@@ -13,6 +13,8 @@ export const create = (data: CreateNotificationDTO) =>
       title: data.title,
       message: data.message,
       type: data.type || "INFO",
+      bookingId: data.bookingId,
+      maintenanceRequestId: data.maintenanceRequestId,
     },
   });
 

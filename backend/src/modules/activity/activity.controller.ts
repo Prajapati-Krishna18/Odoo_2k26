@@ -10,8 +10,8 @@ import * as activityService from "./activity.service.js";
 import { z } from "zod";
 
 const activityQuerySchema = z.object({
-  page: z.preprocess((val) => parseInt(val as string, 10), z.number().int().min(1).default(1)),
-  limit: z.preprocess((val) => parseInt(val as string, 10), z.number().int().min(1).max(100).default(10)),
+  page: z.preprocess((val) => val ? parseInt(val as string, 10) : undefined, z.number().int().min(1).default(1)),
+  limit: z.preprocess((val) => val ? parseInt(val as string, 10) : undefined, z.number().int().min(1).max(100).default(10)),
   userId: z.string().uuid("Invalid user ID").optional(),
   module: z.string().optional(),
   action: z.string().optional(),

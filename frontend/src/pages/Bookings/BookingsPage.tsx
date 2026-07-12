@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   CalendarClock,
   Monitor,
@@ -10,6 +10,7 @@ import {
   X,
   Clock,
 } from 'lucide-react'
+import { bookingsApi, resourcesApi } from '@/api'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -32,30 +33,6 @@ interface Booking {
   bookedBy: string
   status: BookingStatus
 }
-
-// ─── Mock Data ─────────────────────────────────────────────────────────────────
-
-const RESOURCES: Resource[] = [
-  { id: 'r1', name: 'Conference Room A', type: 'Room', location: 'HQ Floor 3' },
-  { id: 'r2', name: 'Boardroom Suite', type: 'Room', location: 'HQ Floor 5' },
-  { id: 'r3', name: 'Toyota Innova #1', type: 'Vehicle', location: 'Parking B' },
-  { id: 'r4', name: 'Ford Transit Van', type: 'Vehicle', location: 'Parking B' },
-  { id: 'r5', name: 'Rally Plus Camera Kit', type: 'Equipment', location: 'AV Store' },
-  { id: 'r6', name: 'Portable Projector', type: 'Equipment', location: 'AV Store' },
-]
-
-const TODAY = new Date('2026-07-12')
-const fmtDate = (d: Date) => d.toISOString().substring(0, 10)
-const addDays = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.getDate() + n); return x }
-
-const INITIAL_BOOKINGS: Booking[] = [
-  { id: 'b1', resourceId: 'r1', date: fmtDate(TODAY), start: '09:00', end: '11:00', bookedBy: 'Sarah Chen', status: 'Ongoing' },
-  { id: 'b2', resourceId: 'r1', date: fmtDate(TODAY), start: '14:00', end: '16:00', bookedBy: 'Vikram Singh', status: 'Upcoming' },
-  { id: 'b3', resourceId: 'r2', date: fmtDate(TODAY), start: '10:00', end: '12:00', bookedBy: 'Neha Gupta', status: 'Upcoming' },
-  { id: 'b4', resourceId: 'r3', date: fmtDate(addDays(TODAY, 1)), start: '08:00', end: '18:00', bookedBy: 'Rajiv Kumar', status: 'Upcoming' },
-  { id: 'b5', resourceId: 'r5', date: fmtDate(addDays(TODAY, -1)), start: '13:00', end: '15:00', bookedBy: 'Aarav Mehta', status: 'Completed' },
-  { id: 'b6', resourceId: 'r6', date: fmtDate(addDays(TODAY, 2)), start: '09:00', end: '10:30', bookedBy: 'Priya Sharma', status: 'Upcoming' },
-]
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -115,9 +92,28 @@ function EmptyState({ message, cta }: { message: string; cta?: string }) {
 
 // ─── Page Component ────────────────────────────────────────────────────────────
 
+const TODAY = new Date('2026-07-12')
+const fmtDate = (d: Date) => d.toISOString().substring(0, 10)
+const addDays = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.getDate() + n); return x }
+
+// Helper mapper functions
+const mapResType = (type: string): ResourceType => {
+  if (type === 'MEETING_ROOM') return 'Room'
+  if (type === 'VEHICLE') return 'Vehicle'
+  return 'Equipment'
+}
+
+const mapBkStatus = (status: string): BookingStatus => {
+  if (status === 'PENDING') return 'Upcoming'
+  if (status === 'APPROVED') return 'Ongoing'
+  if (status === 'COMPLETED') return 'Completed'
+  return 'Cancelled'
+}
+
 export default function BookingsPage() {
-  const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS)
-  const [selResourceId, setSelResourceId] = useState('r1')
+  const [resources, setResources] = useState<Resource[]>([])
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [selResourceId, setSelResourceId] = useState('')
   const [weekStart, setWeekStart] = useState(() => getWeekStart(TODAY))
 
   // Book panel state
@@ -126,7 +122,41 @@ export default function BookingsPage() {
   const [bkStart, setBkStart] = useState('09:00')
   const [bkEnd, setBkEnd] = useState('10:00')
 
-  const selResource = RESOURCES.find(r => r.id === selResourceId)!
+  const fetchAllData = () => {
+    Promise.all([resourcesApi.getAll(), bookingsApi.getAll()])
+      .then(([resData, bkData]) => {
+        const mappedRes = resData.map((r) => ({
+          id: r.id,
+          name: r.name,
+          type: mapResType(r.type),
+          location: r.location || 'HQ Office',
+        }))
+        setResources(mappedRes)
+        if (mappedRes.length > 0 && !selResourceId) {
+          setSelResourceId(mappedRes[0].id)
+        }
+
+        const mappedBks = bkData.map((b) => ({
+          id: b.id,
+          resourceId: b.resourceId,
+          date: b.startTime.substring(0, 10),
+          start: new Date(b.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+          end: new Date(b.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+          bookedBy: b.user?.fullName || 'Employee',
+          status: mapBkStatus(b.status),
+        }))
+        setBookings(mappedBks)
+      })
+      .catch((err) => {
+        console.error('Failed to fetch bookings page data:', err)
+      })
+  }
+
+  useEffect(() => {
+    fetchAllData()
+  }, [])
+
+  const selResource = resources.find(r => r.id === selResourceId)
 
   // Week days array
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
@@ -146,17 +176,36 @@ export default function BookingsPage() {
   )
   const isValidTime = timeToMinutes(bkEnd) > timeToMinutes(bkStart)
 
-  const handleBook = () => {
-    if (conflictBooking || !isValidTime) return
-    setBookings([...bookings, {
-      id: `b${bookings.length + 1}`, resourceId: selResourceId, date: bkDate,
-      start: bkStart, end: bkEnd, bookedBy: 'Priya Sharma', status: 'Upcoming',
-    }])
-    setShowPanel(false)
+  const handleBook = async () => {
+    if (conflictBooking || !isValidTime || !selResourceId) return
+
+    try {
+      const startTime = `${bkDate}T${bkStart}:00.000Z`
+      const endTime = `${bkDate}T${bkEnd}:00.000Z`
+      
+      await bookingsApi.create({
+        resourceId: selResourceId,
+        title: 'Booking request',
+        startTime,
+        endTime,
+        isExclusive: true,
+      })
+
+      fetchAllData()
+      setShowPanel(false)
+    } catch (err: any) {
+      console.error(err)
+      alert(err.message || 'Failed to create booking. Make sure times are valid.')
+    }
   }
 
-  const handleCancel = (id: string) => {
-    setBookings(bookings.map(b => b.id === id ? { ...b, status: 'Cancelled' as BookingStatus } : b))
+  const handleCancel = async (id: string) => {
+    try {
+      await bookingsApi.cancel(id, 'Cancelled via UI dashboard')
+      fetchAllData()
+    } catch (err) {
+      console.error('Failed to cancel booking:', err)
+    }
   }
 
   // Grid cell fill: does this resource have a booking at this day/hour?
@@ -186,7 +235,7 @@ export default function BookingsPage() {
 
       {/* ── Resource Selector ─────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
-        {RESOURCES.map(r => {
+        {resources.map(r => {
           const Icon = ICON_MAP[r.type]
           const isSelected = r.id === selResourceId
           return (
@@ -205,7 +254,7 @@ export default function BookingsPage() {
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-soft)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div>
             <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-              {selResource.name}
+              {selResource?.name || 'No Resource Selected'}
             </h3>
             <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
               {fmtDate(weekDays[0])} — {fmtDate(weekDays[6])}
@@ -290,10 +339,10 @@ export default function BookingsPage() {
                 </thead>
                 <tbody style={{ fontSize: '0.78rem' }}>
                   {bookings.map(b => {
-                    const res = RESOURCES.find(r => r.id === b.resourceId)
+                    const res = resources.find(r => r.id === b.resourceId)
                     return (
                       <tr key={b.id} style={{ borderBottom: '1px solid var(--border-soft)' }}>
-                        <td style={{ padding: '10px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>{res?.name}</td>
+                        <td style={{ padding: '10px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>{res?.name || 'Resource'}</td>
                         <td style={{ padding: '10px 16px', fontFamily: 'var(--font-data)', color: 'var(--text-muted)' }}>{b.date}</td>
                         <td style={{ padding: '10px 16px', fontFamily: 'var(--font-data)', color: 'var(--text-primary)' }}>{b.start} – {b.end}</td>
                         <td style={{ padding: '10px 16px', color: 'var(--text-muted)' }}>{b.bookedBy}</td>
@@ -331,7 +380,7 @@ export default function BookingsPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <label style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Resource</label>
               <select value={selResourceId} onChange={e => setSelResourceId(e.target.value)} className="af-select">
-                {RESOURCES.map(r => <option key={r.id} value={r.id}>{r.name} ({r.type})</option>)}
+                {resources.map(r => <option key={r.id} value={r.id}>{r.name} ({r.type})</option>)}
               </select>
             </div>
 

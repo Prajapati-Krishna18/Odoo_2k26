@@ -14,8 +14,17 @@ export interface MockUser {
   email: string
 }
 
+const DEFAULT_USER: MockUser = {
+  id: '',
+  name: 'Priya Sharma',
+  initials: 'PS',
+  role: 'Admin',
+  notificationCount: 3,
+  email: '',
+}
+
 interface AuthContextValue {
-  user: MockUser | null
+  user: MockUser
   setRole: (role: UserRole) => void
   isAuthenticated: boolean
   isLoading: boolean
@@ -57,7 +66,7 @@ function getInitials(fullName: string): string {
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<MockUser | null>(null)
+  const [user, setUser] = useState<MockUser>(DEFAULT_USER)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -77,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear invalid credentials
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
-      setUser(null)
+      setUser(DEFAULT_USER)
       setIsAuthenticated(false)
     } finally {
       setIsLoading(false)
@@ -94,9 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const setRole = (role: UserRole) => {
-    if (user) {
-      setUser((prev) => prev ? { ...prev, role } : null)
-    }
+    setUser((prev) => ({ ...prev, role }))
   }
 
   const login = async (email: string, password: string) => {
@@ -125,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
-    setUser(null)
+    setUser(DEFAULT_USER)
     setIsAuthenticated(false)
   }
 

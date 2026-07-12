@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   QrCode,
   Image as ImageIcon,
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { StateRail, type LifecycleState } from '@/components/StateRail'
 import { colors, type StateKey } from '@/lib/tokens'
+import { resourcesApi, type ResourceItem } from '@/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -61,6 +62,30 @@ function mapStateToLabel(st: StateKey): LifecycleState {
   }
 }
 
+// Helper to map DB Resource to UI Asset
+const mapResourceToAsset = (res: ResourceItem): Asset => ({
+  id: res.id,
+  tag: 'RES-' + res.id.substring(0, 4).toUpperCase(),
+  name: res.name,
+  category: res.type === 'MEETING_ROOM' ? 'Meeting Rooms' : res.type === 'VEHICLE' ? 'Vehicles' : 'Equipment',
+  currentState: res.status === 'AVAILABLE' ? 'available' : res.status === 'MAINTENANCE' ? 'maintenance' : 'inactive' as any,
+  location: res.location || 'HQ - Sector 62',
+  department: 'Shared Infrastructure',
+  serialNumber: 'SN-' + res.id.substring(0, 6).toUpperCase(),
+  acquisitionDate: new Date(res.createdAt).toISOString().substring(0, 10),
+  acquisitionCost: 0,
+  condition: 'Good',
+  sharedBookable: true,
+  allocations: [],
+  maintenance: res.maintenanceRequests ? res.maintenanceRequests.map((m: any) => ({
+    id: m.id,
+    type: m.title,
+    date: new Date(m.createdAt).toISOString().substring(0, 10),
+    cost: 0,
+    notes: m.description,
+  })) : [],
+})
+
 // ─── Mock Assets ──────────────────────────────────────────────────────────────
 
 const INITIAL_ASSETS: Asset[] = [
@@ -68,7 +93,7 @@ const INITIAL_ASSETS: Asset[] = [
     id: 'a1',
     tag: 'AF-0114',
     name: 'MacBook Pro 16" M3 Max',
-    category: 'Laptops & Workstations',
+    category: 'Equipment',
     currentState: 'allocated',
     location: 'HQ - Sector 62',
     department: 'Engineering',
@@ -85,80 +110,10 @@ const INITIAL_ASSETS: Asset[] = [
       { id: 'm1', type: 'Repaste & Cleaning', date: '2025-02-12', cost: 1500, notes: 'Thermal paste upgrade and internal dust clean' },
     ],
   },
-  {
-    id: 'a2',
-    tag: 'AF-0824',
-    name: 'Dell UltraSharp 32" 4K Monitor',
-    category: 'Laptops & Workstations',
-    currentState: 'available',
-    location: 'HQ - Sector 62',
-    department: 'Engineering',
-    serialNumber: 'MX-99214-B',
-    acquisitionDate: '2023-05-10',
-    acquisitionCost: 89000,
-    condition: 'Good',
-    sharedBookable: true,
-    allocations: [
-      { id: 'al3', holder: 'Neha Gupta', assignedDate: '2023-05-12', returnedDate: '2024-04-18' },
-    ],
-    maintenance: [],
-  },
-  {
-    id: 'a3',
-    tag: 'AF-1092',
-    name: 'iPad Pro 11" M2 Wifi',
-    category: 'Mobile Devices',
-    currentState: 'reserved',
-    location: 'Mumbai Branch',
-    department: 'Marketing',
-    serialNumber: 'DLK2215MX1',
-    acquisitionDate: '2023-11-22',
-    acquisitionCost: 79900,
-    condition: 'New',
-    sharedBookable: true,
-    allocations: [],
-    maintenance: [],
-  },
-  {
-    id: 'a4',
-    tag: 'AF-5501',
-    name: 'FortiGate 100F Firewall',
-    category: 'Networking Hardware',
-    currentState: 'maintenance',
-    location: 'Bengaluru Lab',
-    department: 'IT Support',
-    serialNumber: 'FG100F-882190',
-    acquisitionDate: '2022-08-01',
-    acquisitionCost: 350000,
-    condition: 'Fair',
-    sharedBookable: false,
-    allocations: [],
-    maintenance: [
-      { id: 'm2', type: 'Firmware Recovery', date: '2026-07-10', cost: 0, notes: 'Reflashed OS kernel to stable v7.4' },
-    ],
-  },
-  {
-    id: 'a5',
-    tag: 'AF-9921',
-    name: 'iPhone 15 Pro Max 256G',
-    category: 'Mobile Devices',
-    currentState: 'lost',
-    location: 'Remote',
-    department: 'Marketing',
-    serialNumber: 'AP-9081267',
-    acquisitionDate: '2023-09-25',
-    acquisitionCost: 159900,
-    condition: 'Good',
-    sharedBookable: false,
-    allocations: [
-      { id: 'al4', holder: 'Rohan Roy', assignedDate: '2023-09-30', returnedDate: 'Active' },
-    ],
-    maintenance: [],
-  },
 ]
 
-const CATEGORIES = ['Laptops & Workstations', 'Mobile Devices', 'Networking Hardware']
-const DEPARTMENTS = ['Engineering', 'Marketing', 'Logistics', 'IT Support', 'Legal & Compliance']
+const CATEGORIES = ['Equipment', 'Vehicles', 'Meeting Rooms']
+const DEPARTMENTS = ['Engineering', 'Marketing', 'Logistics', 'IT Support', 'Legal & Compliance', 'Shared Infrastructure']
 const LOCATIONS = ['HQ - Sector 62', 'Mumbai Branch', 'Bengaluru Lab', 'Remote']
 const LIFECYCLE_STATES: StateKey[] = ['available', 'allocated', 'reserved', 'maintenance', 'lost', 'retired', 'disposed']
 
@@ -186,8 +141,20 @@ export default function AssetDirectoryPage() {
     acquisitionCost: 0,
     condition: 'New' as 'New' | 'Good' | 'Fair' | 'Poor',
     location: LOCATIONS[0],
-    sharedBookable: false,
+    sharedBookable: true,
   })
+
+  // Load from API on mount
+  useEffect(() => {
+    resourcesApi.getAll()
+      .then((data) => {
+        const dbAssets = data.map(mapResourceToAsset)
+        setAssets([...INITIAL_ASSETS, ...dbAssets])
+      })
+      .catch((err) => {
+        console.error('Failed to load assets from backend:', err)
+      })
+  }, [])
 
   // Tag helper
   const nextTagNumber = 1000 + assets.length + 1
@@ -220,39 +187,38 @@ export default function AssetDirectoryPage() {
     return matchesSearch && matchesCategory && matchesDept && matchesLoc && matchesStatus
   })
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newAsset.name || !newAsset.serialNumber) return
 
-    const assetToRegister: Asset = {
-      id: `a${assets.length + 1}`,
-      tag: autoGeneratedTag,
-      name: newAsset.name,
-      category: newAsset.category,
-      currentState: 'available',
-      location: newAsset.location,
-      department: 'IT Support', // Default holding department
-      serialNumber: newAsset.serialNumber,
-      acquisitionDate: newAsset.acquisitionDate,
-      acquisitionCost: Number(newAsset.acquisitionCost),
-      condition: newAsset.condition,
-      sharedBookable: newAsset.sharedBookable,
-      allocations: [],
-      maintenance: [],
+    try {
+      const type = newAsset.category === 'Meeting Rooms' ? 'MEETING_ROOM' : newAsset.category === 'Vehicles' ? 'VEHICLE' : 'EQUIPMENT'
+      const created = await resourcesApi.create({
+        name: newAsset.name,
+        type,
+        location: newAsset.location,
+        description: 'Asset registered through UI Directory',
+        quantity: 1,
+        status: 'AVAILABLE'
+      })
+      const mapped = mapResourceToAsset(created)
+      setAssets((prev) => [...prev, mapped])
+      
+      setNewAsset({
+        name: '',
+        category: CATEGORIES[0],
+        serialNumber: '',
+        acquisitionDate: new Date().toISOString().substring(0, 10),
+        acquisitionCost: 0,
+        condition: 'New',
+        location: LOCATIONS[0],
+        sharedBookable: true,
+      })
+      setShowRegisterModal(false)
+    } catch (err) {
+      console.error('Failed to register asset in backend:', err)
+      alert('Failed to register asset. Check console for details.')
     }
-
-    setAssets([...assets, assetToRegister])
-    setNewAsset({
-      name: '',
-      category: CATEGORIES[0],
-      serialNumber: '',
-      acquisitionDate: new Date().toISOString().substring(0, 10),
-      acquisitionCost: 0,
-      condition: 'New',
-      location: LOCATIONS[0],
-      sharedBookable: false,
-    })
-    setShowRegisterModal(false)
   }
 
   return (

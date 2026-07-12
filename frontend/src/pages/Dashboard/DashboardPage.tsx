@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Boxes,
   UserCheck,
@@ -12,6 +12,7 @@ import {
   ArrowUpRight,
 } from 'lucide-react'
 import { colors } from '@/lib/tokens'
+import { dashboardApi, type DashboardStats } from '@/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -26,7 +27,7 @@ interface OverdueItem {
 
 interface ActivityItem {
   id: string
-  type: 'assignment' | 'maintenance' | 'booking' | 'transfer' | 'audit'
+  type: 'assignment' | 'maintenance' | 'booking' | 'transfer' | 'audit' | string
   title: string
   description: string
   time: string
@@ -40,36 +41,62 @@ const MOCK_OVERDUE: OverdueItem[] = [
   { id: '3', tag: 'AST-8812', name: 'DJI Mavic 3 Drone', holder: 'Vikram Singh', dept: 'Creative', daysOverdue: 5 },
 ]
 
-const MOCK_ACTIVITIES: ActivityItem[] = [
-  { id: '1', type: 'assignment', title: 'Asset Assigned', description: 'AST-7821 (MacBook Pro) allocated to Sarah Chen', time: '10m ago' },
-  { id: '2', type: 'maintenance', title: 'Maintenance Approved', description: 'AST-1104 diagnostics completed & recalibrated', time: '45m ago' },
-  { id: '3', type: 'booking', title: 'Booking Confirmed', description: 'VR Headset Kit reserved by Product Team for July 15', time: '2h ago' },
-  { id: '4', type: 'transfer', title: 'Transfer Approved', description: '3x Dell Monitors transferred from HQ to branch office', time: '4h ago' },
-  { id: '5', type: 'audit', title: 'Audit Discrepancy Flagged', description: 'Physical scan mismatch on AST-4001 projector', time: '1d ago' },
-]
-
-const STATE_COUNTS = [
-  { label: 'Available', count: 142, color: colors.status.available },
-  { label: 'Allocated', count: 318, color: colors.status.allocated },
-  { label: 'Reserved', count: 47, color: colors.status.reserved },
-  { label: 'Under Maintenance', count: 23, color: colors.status.maintenance },
-  { label: 'Lost', count: 8, color: colors.status.lost },
-  { label: 'Retired', count: 91, color: colors.status.retired },
-  { label: 'Disposed', count: 34, color: colors.status.disposed },
-]
-
-const TOTAL_ASSETS = STATE_COUNTS.reduce((sum, item) => sum + item.count, 0)
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const [activities] = useState<ActivityItem[]>(MOCK_ACTIVITIES)
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [loading, setLoading] = useState(true)
   const [overdueItems] = useState<OverdueItem[]>(MOCK_OVERDUE)
+
+  useEffect(() => {
+    dashboardApi.getStats()
+      .then((data) => {
+        setStats(data)
+      })
+      .catch((err) => {
+        console.error('Failed to load dashboard stats:', err)
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+  }, [])
 
   // Handlers for mock CTAs
   const handleAction = (actionName: string) => {
     alert(`Triggered Action: ${actionName} (API endpoint ready for integration)`)
   }
+
+  if (loading) {
+    return (
+      <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', fontFamily: 'var(--font-display)', fontSize: '0.85rem' }}>
+        Loading dashboard metrics...
+      </div>
+    )
+  }
+
+  // Fallback to defaults if backend values are empty/null
+  const availableCount = stats?.assets.availableAssets || 0
+  const allocatedCount = stats?.assets.allocatedAssets || 0
+  const maintenanceCount = stats?.maintenance.openTickets || stats?.assets.underMaintenanceAssets || 0
+  const bookingsCount = stats?.bookings.totalBookings || 0
+  const totalEmployees = stats?.totalEmployees || 0
+
+  const stateCounts = [
+    { label: 'Available', count: availableCount, color: colors.status.available },
+    { label: 'Allocated', count: allocatedCount, color: colors.status.allocated },
+    { label: 'Reserved', count: bookingsCount, color: colors.status.reserved },
+    { label: 'Under Maintenance', count: maintenanceCount, color: colors.status.maintenance },
+  ]
+  const totalAssets = stateCounts.reduce((sum, item) => sum + item.count, 0)
+
+  // Map backend activity logs
+  const activities: ActivityItem[] = stats?.recentActivities.map((act) => ({
+    id: act.id,
+    type: act.module.toLowerCase(),
+    title: act.action,
+    description: `${act.description} (by ${act.user.fullName})`,
+    time: new Date(act.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  })) || []
 
   return (
     <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1400, margin: '0 auto' }}>
@@ -92,11 +119,11 @@ export default function DashboardPage() {
         {/* Available */}
         <div className="panel" style={{ padding: '16px 18px', borderLeft: `3.5px solid ${colors.status.available}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Available</span>
+            <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Available Assets</span>
             <Boxes size={14} style={{ color: colors.status.available }} />
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--font-data)', fontSize: '1.8rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1 }}>142</div>
+            <div style={{ fontFamily: 'var(--font-data)', fontSize: '1.8rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1 }}>{availableCount}</div>
             <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Ready for deployment</span>
           </div>
         </div>
@@ -104,11 +131,11 @@ export default function DashboardPage() {
         {/* Allocated */}
         <div className="panel" style={{ padding: '16px 18px', borderLeft: `3.5px solid ${colors.status.allocated}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Allocated</span>
+            <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Allocated Assets</span>
             <UserCheck size={14} style={{ color: colors.status.allocated }} />
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--font-data)', fontSize: '1.8rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1 }}>318</div>
+            <div style={{ fontFamily: 'var(--font-data)', fontSize: '1.8rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1 }}>{allocatedCount}</div>
             <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Currently in use</span>
           </div>
         </div>
@@ -116,11 +143,11 @@ export default function DashboardPage() {
         {/* Maintenance */}
         <div className="panel" style={{ padding: '16px 18px', borderLeft: `3.5px solid ${colors.status.maintenance}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Maintenance Today</span>
+            <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Under Maintenance</span>
             <Wrench size={14} style={{ color: colors.status.maintenance }} />
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--font-data)', fontSize: '1.8rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1 }}>23</div>
+            <div style={{ fontFamily: 'var(--font-data)', fontSize: '1.8rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1 }}>{maintenanceCount}</div>
             <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>In active repair queue</span>
           </div>
         </div>
@@ -132,32 +159,32 @@ export default function DashboardPage() {
             <CalendarClock size={14} style={{ color: colors.status.reserved }} />
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--font-data)', fontSize: '1.8rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1 }}>47</div>
+            <div style={{ fontFamily: 'var(--font-data)', fontSize: '1.8rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1 }}>{bookingsCount}</div>
             <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Reserved upcoming</span>
           </div>
         </div>
 
-        {/* Transfers */}
+        {/* Total Employees */}
         <div className="panel" style={{ padding: '16px 18px', borderLeft: `3.5px solid var(--accent-cyan)`, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Pending Transfers</span>
+            <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Total Employees</span>
             <ArrowLeftRight size={14} style={{ color: 'var(--accent-cyan)' }} />
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--font-data)', fontSize: '1.8rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1 }}>12</div>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Awaiting verification</span>
+            <div style={{ fontFamily: 'var(--font-data)', fontSize: '1.8rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1 }}>{totalEmployees}</div>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Registered in workspace</span>
           </div>
         </div>
 
-        {/* Returns */}
+        {/* Active Today */}
         <div className="panel" style={{ padding: '16px 18px', borderLeft: `3.5px solid ${colors.status.retired}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Upcoming Returns</span>
+            <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Active Today</span>
             <Clock size={14} style={{ color: colors.status.retired }} />
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--font-data)', fontSize: '1.8rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1 }}>19</div>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Due within next 72h</span>
+            <div style={{ fontFamily: 'var(--font-data)', fontSize: '1.8rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1 }}>{stats?.activeUsersToday || 0}</div>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Users active within 24h</span>
           </div>
         </div>
 
@@ -264,17 +291,17 @@ export default function DashboardPage() {
                 Fleet Lifecycle Distribution (StateRail Summary)
               </h3>
               <span style={{ fontSize: '0.68rem', fontFamily: 'var(--font-data)', color: 'var(--text-muted)' }}>
-                {TOTAL_ASSETS} assets logged
+                {totalAssets} assets logged
               </span>
             </div>
 
             {/* Graphic multi-color stacked bar */}
             <div style={{ display: 'flex', height: 10, overflow: 'hidden', border: '1px solid var(--border-soft)' }}>
-              {STATE_COUNTS.map((state) => (
+              {stateCounts.map((state) => (
                 <div
                   key={state.label}
                   style={{
-                    flex: state.count,
+                    flex: state.count || 1, // prevent 0-flex rendering issues
                     background: state.color,
                   }}
                   title={`${state.label}: ${state.count} assets`}
@@ -284,7 +311,7 @@ export default function DashboardPage() {
 
             {/* Detailed chips breakdown grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10 }}>
-              {STATE_COUNTS.map((state) => (
+              {stateCounts.map((state) => (
                 <div key={state.label} className="panel" style={{ padding: '10px 12px', background: 'var(--bg-surface-raised)', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 8, height: 8, background: state.color, flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>

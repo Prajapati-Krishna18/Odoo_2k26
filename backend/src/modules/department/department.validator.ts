@@ -25,8 +25,8 @@ export const createDepartmentSchema = z.object({
 export const updateDepartmentSchema = createDepartmentSchema.partial();
 
 export const departmentQuerySchema = z.object({
-  page: z.preprocess((val) => parseInt(val as string, 10), z.number().int().min(1).default(1)),
-  limit: z.preprocess((val) => parseInt(val as string, 10), z.number().int().min(1).max(100).default(10)),
+  page: z.preprocess((val) => val ? parseInt(val as string, 10) : undefined, z.number().int().min(1).default(1)),
+  limit: z.preprocess((val) => val ? parseInt(val as string, 10) : undefined, z.number().int().min(1).max(100).default(10)),
   search: z.string().optional(),
   sortBy: z.string().default("createdAt"),
   sortOrder: z.enum(["asc", "desc"] as const).default("desc"),

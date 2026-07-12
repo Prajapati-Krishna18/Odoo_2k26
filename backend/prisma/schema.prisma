@@ -1,14 +1,15 @@
 // ─────────────────────────────────────────────────────────────
 // AssetFlow — Prisma Schema
-// Phase 6: Platform Administration & Configuration
+// Merged Schema: Phase 3 + Phase 6
 // ─────────────────────────────────────────────────────────────
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
 }
 
 // ── Enums ────────────────────────────────────────────────────
@@ -21,6 +22,54 @@ enum DepartmentStatus {
 enum CategoryStatus {
   ACTIVE
   INACTIVE
+}
+
+enum ResourceType {
+  MEETING_ROOM
+  VEHICLE
+  EQUIPMENT
+}
+
+enum ResourceStatus {
+  AVAILABLE
+  MAINTENANCE
+  INACTIVE
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+enum MaintenanceStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum NotificationType {
+  BOOKING_CREATED
+  BOOKING_APPROVED
+  BOOKING_REJECTED
+  BOOKING_CANCELLED
+  BOOKING_REMINDER
+  MAINTENANCE_APPROVED
+  MAINTENANCE_REJECTED
+  MAINTENANCE_STARTING_SOON
+  MAINTENANCE_COMPLETED
 }
 
 // ── Role ─────────────────────────────────────────────────────
@@ -61,6 +110,11 @@ model User {
 
   role          Role           @relation(fields: [roleId], references: [id])
   refreshTokens RefreshToken[]
+  bookings      Booking[]
+  notifications Notification[]
+
+  maintenanceRequested MaintenanceRequest[] @relation("RequestedBy")
+  maintenanceApproved  MaintenanceRequest[] @relation("ApprovedBy")
 
   // Relations
   department       Department? @relation("DepartmentEmployees", fields: [departmentId], references: [id])
@@ -68,7 +122,6 @@ model User {
 
   // Shared Infrastructure relations
   activityLogs  ActivityLog[]
-  notifications Notification[]
 
   @@map("users")
 }
@@ -146,20 +199,111 @@ model ActivityLog {
   @@map("activity_logs")
 }
 
+// ── Resource ─────────────────────────────────────────────────
+
+model Resource {
+  id          String         @id @default(uuid())
+  name        String
+  type        ResourceType
+  status      ResourceStatus @default(AVAILABLE)
+  description String?
+  location    String?
+  capacity    Int?
+  quantity    Int            @default(1)
+  imageUrl    String?        @map("image_url")
+  metadata    Json?
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  bookings            Booking[]
+  maintenanceRequests MaintenanceRequest[]
+
+  @@index([type])
+  @@index([status])
+  @@map("resources")
+}
+
+// ── Booking ──────────────────────────────────────────────────
+
+model Booking {
+  id             String        @id @default(uuid())
+  resourceId     String        @map("resource_id")
+  userId         String        @map("user_id")
+  title          String
+  description    String?
+  startTime      DateTime      @map("start_time")
+  endTime        DateTime      @map("end_time")
+  status         BookingStatus @default(PENDING)
+  rejectedReason String?       @map("rejected_reason")
+  cancelReason   String?       @map("cancel_reason")
+  attendeeCount  Int?          @map("attendee_count")
+  purpose        String?
+  returnCondition String?      @map("return_condition")
+  isExclusive    Boolean       @default(true) @map("is_exclusive")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  resource      Resource       @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+
+  @@index([resourceId])
+  @@index([userId])
+  @@index([startTime, endTime])
+  @@index([status])
+  @@map("bookings")
+}
+
+// ── Maintenance Request ──────────────────────────────────────
+
+model MaintenanceRequest {
+  id              String            @id @default(uuid())
+  resourceId      String            @map("resource_id")
+  requestedById   String            @map("requested_by_id")
+  approvedById    String?           @map("approved_by_id")
+  title           String
+  description     String
+  priority        Priority          @default(MEDIUM)
+  status          MaintenanceStatus @default(REQUESTED)
+  scheduledStart  DateTime?         @map("scheduled_start")
+  scheduledEnd    DateTime?         @map("scheduled_end")
+  startedAt       DateTime?         @map("started_at")
+  completedAt     DateTime?         @map("completed_at")
+  rejectedReason  String?           @map("rejected_reason")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  resource      Resource       @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  requestedBy   User           @relation("RequestedBy", fields: [requestedById], references: [id])
+  approvedBy    User?          @relation("ApprovedBy", fields: [approvedById], references: [id])
+  notifications Notification[]
+
+  @@index([resourceId])
+  @@index([requestedById])
+  @@index([status])
+  @@index([priority])
+  @@map("maintenance_requests")
+}
+
 // ── Notification ─────────────────────────────────────────────
 
 model Notification {
-  id        String   @id @default(uuid())
-  title     String
-  message   String
-  type      String   @default("INFO") // e.g. "INFO", "ALERT", "SUCCESS", "WARNING"
-  userId    String   @map("user_id")
-  isRead    Boolean  @default(false) @map("is_read")
-  createdAt DateTime @default(now()) @map("created_at")
+  id                   String           @id @default(uuid())
+  userId               String           @map("user_id")
+  type                 String           @default("INFO")
+  title                String
+  message              String
+  isRead               Boolean          @default(false) @map("is_read")
+  bookingId            String?          @map("booking_id")
+  maintenanceRequestId String?          @map("maintenance_request_id")
+  createdAt            DateTime         @default(now()) @map("created_at")
 
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  booking            Booking?            @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  maintenanceRequest MaintenanceRequest? @relation(fields: [maintenanceRequestId], references: [id], onDelete: SetNull)
 
+  @@index([userId, isRead])
+  @@index([createdAt])
   @@map("notifications")
 }
 
@@ -190,7 +334,7 @@ model SystemSetting {
 
 model Permission {
   id        String   @id @default(uuid())
-  name      String   @unique // e.g. "Department.Create", "Employee.View"
+  name      String   @unique
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

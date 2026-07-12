@@ -7,7 +7,9 @@ export interface CreateNotificationDTO {
   userId: string;
   title: string;
   message: string;
-  type?: string; // e.g. "INFO", "ALERT", "SUCCESS", "WARNING"
+  type?: string;
+  bookingId?: string;
+  maintenanceRequestId?: string;
 }
 
 export interface NotificationQueryDTO {

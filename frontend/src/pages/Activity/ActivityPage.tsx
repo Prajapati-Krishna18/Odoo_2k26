@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Bell,
   Boxes,
@@ -13,6 +13,7 @@ import {
   Clock,
   Filter,
 } from 'lucide-react'
+import { activityApi } from '@/api'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -45,32 +46,7 @@ interface ActivityEntry {
   target: string
 }
 
-// ─── Mock Data ─────────────────────────────────────────────────────────────────
-
-const INITIAL_NOTIFS: Notification[] = [
-  { id: 'n1', type: 'Asset Assigned', note: 'AF-3302 ThinkPad X1 has been assigned to you by Raj Patel.', timestamp: '2026-07-12 09:14', read: false },
-  { id: 'n2', type: 'Maintenance Approved', note: 'Your maintenance request for MacBook Pro 16" (AF-0114) has been approved.', timestamp: '2026-07-12 08:47', read: false },
-  { id: 'n3', type: 'Booking Confirmed', note: 'Conference Room A booked for today 14:00 – 16:00 confirmed.', timestamp: '2026-07-12 08:30', read: false },
-  { id: 'n4', type: 'Overdue Return Alert', note: 'AF-0114 MacBook Pro was due for return on 01 Jul. 11 days overdue.', timestamp: '2026-07-12 08:00', read: false },
-  { id: 'n5', type: 'Transfer Approved', note: 'Transfer of AF-9921 iPhone 15 Pro Max from Rohan Roy to Vikram Singh approved.', timestamp: '2026-07-11 16:52', read: true },
-  { id: 'n6', type: 'Booking Reminder', note: 'Reminder: Rally Plus Camera Kit booking starts in 30 minutes.', timestamp: '2026-07-11 12:30', read: true },
-  { id: 'n7', type: 'Maintenance Rejected', note: 'Maintenance request for Dell UltraSharp 32" was rejected. Contact your manager.', timestamp: '2026-07-11 11:05', read: true },
-  { id: 'n8', type: 'Audit Discrepancy', note: 'Discrepancy flagged in Warehouse Audit: A-1018 Backup Battery reported Missing.', timestamp: '2026-07-10 15:22', read: true },
-  { id: 'n9', type: 'Booking Cancelled', note: 'Your Ford Transit Van booking on 2026-07-09 was cancelled by admin.', timestamp: '2026-07-09 14:10', read: true },
-]
-
-const ACTIVITY_LOG: ActivityEntry[] = [
-  { timestamp: '2026-07-12 09:14', user: 'Raj Patel', role: 'Asset Manager', action: 'Allocated Asset', target: 'AF-3302 → Aarav Mehta' },
-  { timestamp: '2026-07-12 08:55', user: 'Sarah Chen', role: 'Employee', action: 'Raised Maintenance', target: 'AF-0114 MacBook Pro' },
-  { timestamp: '2026-07-12 08:47', user: 'Raj Patel', role: 'Asset Manager', action: 'Approved Transfer', target: 'AF-9921 Rohan Roy → Vikram Singh' },
-  { timestamp: '2026-07-12 08:30', user: 'Priya Sharma', role: 'Employee', action: 'Booked Resource', target: 'Conference Room A 14:00–16:00' },
-  { timestamp: '2026-07-11 16:22', user: 'Mina Chen', role: 'Admin', action: 'Created Audit', target: 'Warehouse 12 Audit Cycle' },
-  { timestamp: '2026-07-11 14:48', user: 'Sophia Lee', role: 'Department Head', action: 'Marked Returned', target: 'AF-4410 Logitech Rally Kit' },
-  { timestamp: '2026-07-11 11:05', user: 'Raj Patel', role: 'Asset Manager', action: 'Rejected Maintenance', target: 'AF-0824 Dell UltraSharp' },
-  { timestamp: '2026-07-10 15:10', user: 'Mina Chen', role: 'Admin', action: 'Promoted Role', target: 'Vikram Singh → Department Head' },
-  { timestamp: '2026-07-09 12:00', user: 'Priya Sharma', role: 'Employee', action: 'Raised Maintenance', target: 'AF-5501 FortiGate Firewall' },
-  { timestamp: '2026-07-08 09:30', user: 'Aarav Mehta', role: 'Employee', action: 'Booked Resource', target: 'Boardroom Suite 10:00–12:00' },
-]
+// Mock data arrays have been removed.
 
 // ─── Icon & color map ──────────────────────────────────────────────────────────
 
@@ -100,20 +76,86 @@ const ACTION_COLOR: Record<LogAction, string> = {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ActivityPage() {
-  const [notifs, setNotifs] = useState(INITIAL_NOTIFS)
+  const [notifs, setNotifs] = useState<Notification[]>([])
+  const [activities, setActivities] = useState<ActivityEntry[]>([])
   const [filterUnread, setFilterUnread] = useState(false)
   const [logFilter, setLogFilter] = useState('')
 
-  const unreadCount = notifs.filter(n => !n.read).length
+  const fetchAllData = () => {
+    Promise.all([activityApi.getNotifications(), activityApi.getActivities()])
+      .then(([notifData, actData]) => {
+        const mappedNotifs: Notification[] = notifData.map((n) => {
+          let type: NotifType = 'Booking Confirmed'
+          if (n.type === 'BOOKING_CREATED') type = 'Booking Confirmed'
+          else if (n.type === 'BOOKING_APPROVED') type = 'Booking Confirmed'
+          else if (n.type === 'BOOKING_REJECTED') type = 'Booking Cancelled'
+          else if (n.type === 'BOOKING_CANCELLED') type = 'Booking Cancelled'
+          else if (n.type === 'BOOKING_REMINDER') type = 'Booking Reminder'
+          else if (n.type === 'MAINTENANCE_APPROVED') type = 'Maintenance Approved'
+          else if (n.type === 'MAINTENANCE_REJECTED') type = 'Maintenance Rejected'
+          else if (n.type === 'MAINTENANCE_COMPLETED') type = 'Asset Assigned'
+          
+          return {
+            id: n.id,
+            type,
+            note: n.message,
+            timestamp: n.createdAt.substring(0, 16).replace('T', ' '),
+            read: n.read,
+          }
+        })
+        setNotifs(mappedNotifs)
 
+        const mappedLogs: ActivityEntry[] = actData.map((e) => {
+          let action: LogAction = 'Booked Resource'
+          if (e.action.includes('LOGIN')) action = 'Booked Resource' // fallback
+          else if (e.action.includes('REGISTER')) action = 'Marked Returned'
+          else if (e.action.includes('CREATE')) action = 'Booked Resource'
+          else if (e.action.includes('APPROVED')) action = 'Approved Transfer'
+          else if (e.action.includes('ROLE')) action = 'Promoted Role'
+          
+          return {
+            timestamp: e.createdAt.substring(0, 16).replace('T', ' '),
+            user: e.user?.fullName || 'User',
+            role: e.user?.role?.name || 'Employee',
+            action,
+            target: e.description,
+          }
+        })
+        setActivities(mappedLogs)
+      })
+      .catch((err) => {
+        console.error('Failed to fetch activity details:', err)
+      })
+  }
+
+  useEffect(() => {
+    fetchAllData()
+  }, [])
+
+  const unreadCount = notifs.filter(n => !n.read).length
   const visibleNotifs = filterUnread ? notifs.filter(n => !n.read) : notifs
 
-  const markAllRead = () => setNotifs(ns => ns.map(n => ({ ...n, read: true })))
-  const markRead = (id: string) => setNotifs(ns => ns.map(n => n.id === id ? { ...n, read: true } : n))
+  const markAllRead = async () => {
+    try {
+      await activityApi.markAllNotificationsRead()
+      fetchAllData()
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const markRead = async (id: string) => {
+    try {
+      await activityApi.markNotificationRead(id)
+      fetchAllData()
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
   const filteredLog = logFilter
-    ? ACTIVITY_LOG.filter(e => e.user.toLowerCase().includes(logFilter.toLowerCase()) || e.action.toLowerCase().includes(logFilter.toLowerCase()) || e.target.toLowerCase().includes(logFilter.toLowerCase()))
-    : ACTIVITY_LOG
+    ? activities.filter(e => e.user.toLowerCase().includes(logFilter.toLowerCase()) || e.action.toLowerCase().includes(logFilter.toLowerCase()) || e.target.toLowerCase().includes(logFilter.toLowerCase()))
+    : activities
 
   return (
     <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1400, margin: '0 auto' }}>

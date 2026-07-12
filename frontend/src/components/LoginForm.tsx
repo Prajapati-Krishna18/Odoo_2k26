@@ -11,17 +11,37 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const [errorMsg, setErrorMsg] = useState('')
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setIsLoading(true)
-    setTimeout(() => {
-      login()
+    setErrorMsg('')
+    try {
+      await login(email, password)
       navigate('/dashboard')
-    }, 500)
+    } catch (err: any) {
+      console.error(err)
+      setErrorMsg(err.message || 'Invalid email or password.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-5 text-sm">
+      {errorMsg && (
+        <div style={{
+          fontSize: '0.75rem',
+          color: '#ef4444',
+          background: 'rgba(239, 68, 68, 0.08)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          padding: '8px 12px',
+          lineHeight: 1.4
+        }}>
+          {errorMsg}
+        </div>
+      )}
       <TextField
         id="email"
         label="Email address"

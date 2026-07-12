@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   ArrowLeftRight,
   AlertTriangle,
@@ -10,6 +10,7 @@ import {
 import { StateRail, type LifecycleState } from '@/components/StateRail'
 import { useAuth } from '@/context/AuthContext'
 import { colors } from '@/lib/tokens'
+import { resourcesApi, orgApi } from '@/api'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -29,35 +30,12 @@ interface AssetStub { tag: string; name: string; state: StateKey; holder?: strin
 interface TransferReq { id: string; tag: string; from: string; to: string; date: string; status: 'Requested' | 'Approved' | 'Re-allocated' }
 interface ActiveAlloc { id: string; tag: string; name: string; holder: string; dept: string; allocDate: string; expectedReturn: string; state: StateKey }
 
-const ASSETS: AssetStub[] = [
-  { tag: 'AF-0114', name: 'MacBook Pro 16" M3 Max', state: 'allocated', holder: 'Sarah Chen', holderDept: 'Engineering' },
-  { tag: 'AF-0824', name: 'Dell UltraSharp 32" 4K', state: 'available' },
-  { tag: 'AF-1092', name: 'iPad Pro 11" M2 Wifi', state: 'reserved', holder: 'Neha Gupta', holderDept: 'Marketing' },
-  { tag: 'AF-5501', name: 'FortiGate 100F Firewall', state: 'maintenance' },
-  { tag: 'AF-9921', name: 'iPhone 15 Pro Max', state: 'allocated', holder: 'Rohan Roy', holderDept: 'Marketing' },
-  { tag: 'AF-3302', name: 'ThinkPad X1 Carbon Gen11', state: 'available' },
-  { tag: 'AF-4410', name: 'Logitech Rally Plus Kit', state: 'available' },
-]
-
-const EMPLOYEES = [
-  { name: 'Sarah Chen', dept: 'Engineering' },
-  { name: 'Neha Gupta', dept: 'Marketing' },
-  { name: 'Vikram Singh', dept: 'Logistics' },
-  { name: 'Rajiv Kumar', dept: 'IT Support' },
-  { name: 'Aarav Mehta', dept: 'Engineering' },
-  { name: 'Priya Sharma', dept: 'Engineering' },
-]
-
 const INITIAL_TRANSFERS: TransferReq[] = [
   { id: 't1', tag: 'AF-0114', from: 'Sarah Chen', to: 'Aarav Mehta', date: '2026-07-10', status: 'Requested' },
-  { id: 't2', tag: 'AF-9921', from: 'Rohan Roy', to: 'Vikram Singh', date: '2026-07-08', status: 'Approved' },
-  { id: 't3', tag: 'AF-1092', from: 'Neha Gupta', to: 'Rajiv Kumar', date: '2026-07-05', status: 'Re-allocated' },
 ]
 
 const INITIAL_ALLOCATIONS: ActiveAlloc[] = [
   { id: 'ac1', tag: 'AF-0114', name: 'MacBook Pro 16"', holder: 'Sarah Chen', dept: 'Engineering', allocDate: '2024-01-20', expectedReturn: '2026-07-01', state: 'allocated' },
-  { id: 'ac2', tag: 'AF-9921', name: 'iPhone 15 Pro Max', holder: 'Rohan Roy', dept: 'Marketing', allocDate: '2023-09-30', expectedReturn: '2026-08-15', state: 'allocated' },
-  { id: 'ac3', tag: 'AF-1092', name: 'iPad Pro 11"', holder: 'Neha Gupta', dept: 'Marketing', allocDate: '2025-03-14', expectedReturn: '2026-07-05', state: 'reserved' },
 ]
 
 // ─── Status pill helper ───────────────────────────────────────────────────────
@@ -86,10 +64,21 @@ export default function AllocationsPage() {
   const { user } = useAuth()
   const canApprove = user.role === 'Admin' || user.role === 'Asset Manager' || user.role === 'Department Head'
 
+  // Dynamic lists
+  const [assets, setAssets] = useState<AssetStub[]>([])
+  const [employees, setEmployees] = useState<{ name: string; dept: string }[]>([])
+
   // Allocate form
   const [selAssetTag, setSelAssetTag] = useState('')
   const [selEmployee, setSelEmployee] = useState('')
   const [expectedReturn, setExpectedReturn] = useState('')
+
+  // Custom dropdown states
+  const [isOpenAsset, setIsOpenAsset] = useState(false)
+  const [isOpenEmployee, setIsOpenEmployee] = useState(false)
+  const [searchAsset, setSearchAsset] = useState('')
+  const [searchEmployee, setSearchEmployee] = useState('')
+  const [hoveredIdx, setHoveredIdx] = useState<string | null>(null)
 
   // Transfer & allocation lists
   const [transfers, setTransfers] = useState(INITIAL_TRANSFERS)
@@ -100,12 +89,47 @@ export default function AllocationsPage() {
   const [returnNotes, setReturnNotes] = useState('')
   const [returnRating, setReturnRating] = useState(5)
 
-  const selAsset = ASSETS.find(a => a.tag === selAssetTag)
+  useEffect(() => {
+    Promise.all([resourcesApi.getAll(), orgApi.getEmployees()])
+      .then(([resData, empData]) => {
+        const mappedAssets: AssetStub[] = resData.map((r) => ({
+          tag: 'RES-' + r.id.substring(0, 4).toUpperCase(),
+          name: r.name,
+          state: r.status === 'AVAILABLE' ? 'available' : r.status === 'MAINTENANCE' ? 'maintenance' : 'allocated',
+          holder: 'Shared Infrastructure',
+          holderDept: 'Operations',
+        }))
+        setAssets(mappedAssets)
+
+        const mappedEmps = empData.map((e) => ({
+          name: e.fullName,
+          dept: e.department?.name || 'Operations',
+        }))
+        setEmployees(mappedEmps)
+      })
+      .catch((err) => {
+        console.error('Failed to load allocations resources/employees:', err)
+      })
+  }, [])
+
+  const selAsset = assets.find(a => a.tag === selAssetTag)
   const isConflict = selAsset && (selAsset.state === 'allocated' || selAsset.state === 'reserved')
+
+  const filteredAssets = assets.filter(
+    (a) =>
+      a.tag.toLowerCase().includes(searchAsset.toLowerCase()) ||
+      a.name.toLowerCase().includes(searchAsset.toLowerCase())
+  )
+
+  const filteredEmployees = employees.filter(
+    (e) =>
+      e.name.toLowerCase().includes(searchEmployee.toLowerCase()) ||
+      e.dept.toLowerCase().includes(searchEmployee.toLowerCase())
+  )
 
   const handleAllocate = () => {
     if (!selAsset || !selEmployee || isConflict) return
-    const emp = EMPLOYEES.find(e => e.name === selEmployee)
+    const emp = employees.find(e => e.name === selEmployee)
     setAllocations([...allocations, {
       id: `ac${allocations.length + 1}`, tag: selAsset.tag, name: selAsset.name,
       holder: selEmployee, dept: emp?.dept ?? '', allocDate: new Date().toISOString().substring(0, 10),
@@ -158,26 +182,206 @@ export default function AllocationsPage() {
         </h3>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {/* Custom Searchable Asset Dropdown */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, position: 'relative' }}>
             <label style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Select Asset</label>
-            <select value={selAssetTag} onChange={e => setSelAssetTag(e.target.value)}
-              style={{ background: 'var(--bg-void)', border: '1px solid var(--border-soft)', padding: 8, fontSize: '0.78rem', color: 'var(--text-primary)', outline: 'none' }}>
-              <option value="">-- Choose Asset --</option>
-              {ASSETS.map(a => <option key={a.tag} value={a.tag}>{a.tag} — {a.name}</option>)}
-            </select>
+            <div
+              onClick={() => {
+                setIsOpenAsset(!isOpenAsset)
+                setIsOpenEmployee(false)
+              }}
+              style={{
+                background: 'var(--bg-void)',
+                border: '1px solid var(--border-soft)',
+                padding: '8px 12px',
+                fontSize: '0.78rem',
+                color: selAsset ? 'var(--text-primary)' : 'var(--text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                minHeight: 35
+              }}
+            >
+              <span>{selAsset ? `${selAsset.tag} — ${selAsset.name}` : '-- Choose Asset --'}</span>
+              <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', transform: isOpenAsset ? 'rotate(180deg)' : 'none', transition: '0.2s' }}>▼</span>
+            </div>
+            
+            {isOpenAsset && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                background: 'var(--bg-surface-raised)',
+                border: '1px solid var(--border-soft)',
+                zIndex: 110,
+                marginTop: 4,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+                maxHeight: 250,
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                <input
+                  type="text"
+                  placeholder="Search asset..."
+                  value={searchAsset}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={e => setSearchAsset(e.target.value)}
+                  style={{
+                    background: 'var(--bg-void)',
+                    border: 'none',
+                    borderBottom: '1px solid var(--border-soft)',
+                    padding: 8,
+                    fontSize: '0.75rem',
+                    color: 'var(--text-primary)',
+                    outline: 'none',
+                    width: '100%'
+                  }}
+                />
+                <div style={{ overflowY: 'auto', flex: 1 }}>
+                  {filteredAssets.length === 0 ? (
+                    <div style={{ padding: 10, fontSize: '0.72rem', color: 'var(--text-muted)' }}>No assets found</div>
+                  ) : (
+                    filteredAssets.map(a => {
+                      const statusDotColor = a.state === 'available' ? 'var(--status-available)' : a.state === 'maintenance' ? 'var(--status-maintenance)' : 'var(--status-allocated)'
+                      const isHovered = hoveredIdx === a.tag
+                      return (
+                        <div
+                          key={a.tag}
+                          onClick={() => {
+                            setSelAssetTag(a.tag)
+                            setIsOpenAsset(false)
+                            setSearchAsset('')
+                          }}
+                          style={{
+                            padding: '8px 12px',
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                            color: 'var(--text-primary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            background: isHovered ? 'var(--bg-void)' : 'transparent',
+                            transition: 'background 0.15s'
+                          }}
+                          onMouseEnter={() => setHoveredIdx(a.tag)}
+                          onMouseLeave={() => setHoveredIdx(null)}
+                        >
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusDotColor, display: 'inline-block' }} />
+                          <span style={{ fontWeight: 600, color: 'var(--accent-cyan)' }}>{a.tag}</span>
+                          <span style={{ color: 'var(--text-muted)' }}>—</span>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+
+          {/* Custom Searchable Employee Dropdown */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, position: 'relative' }}>
             <label style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Assign To</label>
-            <select value={selEmployee} onChange={e => setSelEmployee(e.target.value)}
-              style={{ background: 'var(--bg-void)', border: '1px solid var(--border-soft)', padding: 8, fontSize: '0.78rem', color: 'var(--text-primary)', outline: 'none' }}>
-              <option value="">-- Choose Employee --</option>
-              {EMPLOYEES.map(e => <option key={e.name} value={e.name}>{e.name} ({e.dept})</option>)}
-            </select>
+            <div
+              onClick={() => {
+                setIsOpenEmployee(!isOpenEmployee)
+                setIsOpenAsset(false)
+              }}
+              style={{
+                background: 'var(--bg-void)',
+                border: '1px solid var(--border-soft)',
+                padding: '8px 12px',
+                fontSize: '0.78rem',
+                color: selEmployee ? 'var(--text-primary)' : 'var(--text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                minHeight: 35
+              }}
+            >
+              <span>{selEmployee ? selEmployee : '-- Choose Employee --'}</span>
+              <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', transform: isOpenEmployee ? 'rotate(180deg)' : 'none', transition: '0.2s' }}>▼</span>
+            </div>
+            
+            {isOpenEmployee && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                background: 'var(--bg-surface-raised)',
+                border: '1px solid var(--border-soft)',
+                zIndex: 110,
+                marginTop: 4,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+                maxHeight: 250,
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                <input
+                  type="text"
+                  placeholder="Search employee..."
+                  value={searchEmployee}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={e => setSearchEmployee(e.target.value)}
+                  style={{
+                    background: 'var(--bg-void)',
+                    border: 'none',
+                    borderBottom: '1px solid var(--border-soft)',
+                    padding: 8,
+                    fontSize: '0.75rem',
+                    color: 'var(--text-primary)',
+                    outline: 'none',
+                    width: '100%'
+                  }}
+                />
+                <div style={{ overflowY: 'auto', flex: 1 }}>
+                  {filteredEmployees.length === 0 ? (
+                    <div style={{ padding: 10, fontSize: '0.72rem', color: 'var(--text-muted)' }}>No employees found</div>
+                  ) : (
+                    filteredEmployees.map(emp => {
+                      const isHovered = hoveredIdx === emp.name
+                      return (
+                        <div
+                          key={emp.name}
+                          onClick={() => {
+                            setSelEmployee(emp.name)
+                            setIsOpenEmployee(false)
+                            setSearchEmployee('')
+                          }}
+                          style={{
+                            padding: '8px 12px',
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                            color: 'var(--text-primary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 8,
+                            background: isHovered ? 'var(--bg-void)' : 'transparent',
+                            transition: 'background 0.15s'
+                          }}
+                          onMouseEnter={() => setHoveredIdx(emp.name)}
+                          onMouseLeave={() => setHoveredIdx(null)}
+                        >
+                          <span style={{ fontWeight: 600 }}>{emp.name}</span>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--accent-cyan)', background: 'rgba(12,202,200,0.06)', padding: '2px 6px', border: '1px solid rgba(12,202,200,0.2)' }}>{emp.dept}</span>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+            )}
           </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Expected Return Date</label>
             <input type="date" value={expectedReturn} onChange={e => setExpectedReturn(e.target.value)}
-              style={{ background: 'var(--bg-void)', border: '1px solid var(--border-soft)', padding: 8, fontSize: '0.78rem', color: 'var(--text-primary)', outline: 'none' }} />
+              style={{ background: 'var(--bg-void)', border: '1px solid var(--border-soft)', padding: 8, fontSize: '0.78rem', color: 'var(--text-primary)', outline: 'none', minHeight: 35 }} />
           </div>
         </div>
 

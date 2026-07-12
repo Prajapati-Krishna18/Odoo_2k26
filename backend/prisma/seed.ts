@@ -127,6 +127,25 @@ async function main(): Promise<void> {
     console.log("   ℹ️   System Settings already exist");
   }
 
+  // 3.5 — Seed default Resources/Assets
+  const resourcesToSeed = [
+    { name: "Conference Room A", type: "MEETING_ROOM" as const, status: "AVAILABLE" as const, location: "HQ Office - Sector 62", capacity: 12, quantity: 1, description: "Executive conference room with AV equipment" },
+    { name: "Ford Transit Van", type: "VEHICLE" as const, status: "AVAILABLE" as const, location: "Warehouse Depot", capacity: 8, quantity: 1, description: "Logistics van for asset transportation" },
+    { name: "Logitech Rally Kit", type: "EQUIPMENT" as const, status: "AVAILABLE" as const, location: "HQ Office - Sector 62", quantity: 1, description: "Mobile video conferencing system" },
+    { name: "MacBook Pro 16\"", type: "EQUIPMENT" as const, status: "AVAILABLE" as const, location: "IT Support Office", quantity: 10, description: "M3 Max Developer laptops" },
+    { name: "Dell UltraSharp 32\"", type: "EQUIPMENT" as const, status: "AVAILABLE" as const, location: "IT Support Office", quantity: 5, description: "4K Color-accurate displays" },
+    { name: "iPad Pro 11\"", type: "EQUIPMENT" as const, status: "AVAILABLE" as const, location: "Marketing HQ", quantity: 5, description: "Creative presentation tablets" },
+    { name: "FortiGate 100F Firewall", type: "EQUIPMENT" as const, status: "MAINTENANCE" as const, location: "Main Server Room", quantity: 1, description: "Core security gateway" }
+  ];
+
+  for (const res of resourcesToSeed) {
+    const existingRes = await prisma.resource.findFirst({ where: { name: res.name } });
+    if (!existingRes) {
+      await prisma.resource.create({ data: res });
+      console.log(`   ✅  Resource: ${res.name}`);
+    }
+  }
+
   // 4 — Upsert permissions
   for (const perm of PERMISSIONS) {
     await prisma.permission.upsert({

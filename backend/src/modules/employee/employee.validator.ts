@@ -36,8 +36,8 @@ export const updateStatusSchema = z.object({
 });
 
 export const employeeQuerySchema = z.object({
-  page: z.preprocess((val) => parseInt(val as string, 10), z.number().int().min(1).default(1)),
-  limit: z.preprocess((val) => parseInt(val as string, 10), z.number().int().min(1).max(100).default(10)),
+  page: z.preprocess((val) => val ? parseInt(val as string, 10) : undefined, z.number().int().min(1).default(1)),
+  limit: z.preprocess((val) => val ? parseInt(val as string, 10) : undefined, z.number().int().min(1).max(100).default(10)),
   search: z.string().optional(),
   departmentId: z.string().uuid("Invalid department ID").optional(),
   roleId: z.string().uuid("Invalid role ID").optional(),

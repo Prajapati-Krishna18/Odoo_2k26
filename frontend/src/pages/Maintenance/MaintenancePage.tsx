@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Wrench,
   Camera,
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { StateRail, type LifecycleState } from '@/components/StateRail'
 import { useAuth } from '@/context/AuthContext'
+import { maintenanceApi, resourcesApi } from '@/api'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -32,48 +33,12 @@ interface MaintenanceRequest {
   technicianNote?: string
 }
 
-// ─── Mock Data ─────────────────────────────────────────────────────────────────
-
-const ASSETS_STUB = [
-  { tag: 'AF-0114', name: 'MacBook Pro 16" M3', state: 'Allocated' as LifecycleState },
-  { tag: 'AF-5501', name: 'FortiGate 100F Firewall', state: 'Under Maintenance' as LifecycleState },
-  { tag: 'AF-0824', name: 'Dell UltraSharp 32" 4K', state: 'Available' as LifecycleState },
-  { tag: 'AF-3302', name: 'ThinkPad X1 Carbon Gen11', state: 'Available' as LifecycleState },
-  { tag: 'AF-9921', name: 'iPhone 15 Pro Max', state: 'Allocated' as LifecycleState },
-]
-
-const INITIAL_REQUESTS: MaintenanceRequest[] = [
-  {
-    id: 'mr1', assetTag: 'AF-5501', assetName: 'FortiGate 100F Firewall',
-    assetState: 'Under Maintenance', issue: 'Intermittent packet drops on WAN interface under load.',
-    priority: 'High', requester: 'Rajiv Kumar', dept: 'IT Support',
-    raised: '2026-07-08', status: 'In Progress', technicianNote: 'Technician Assigned: Anil Mehta',
-  },
-  {
-    id: 'mr2', assetTag: 'AF-0114', assetName: 'MacBook Pro 16" M3',
-    assetState: 'Allocated', issue: 'Battery draining unusually fast — 40% lost in 2 hours.',
-    priority: 'Medium', requester: 'Sarah Chen', dept: 'Engineering',
-    raised: '2026-07-10', status: 'Approved',
-  },
-  {
-    id: 'mr3', assetTag: 'AF-0824', assetName: 'Dell UltraSharp 32"',
-    assetState: 'Available', issue: 'Dead pixels in bottom-left quadrant, roughly 3×3 cluster.',
-    priority: 'Low', requester: 'Neha Gupta', dept: 'Marketing',
-    raised: '2026-07-11', status: 'Pending',
-  },
-  {
-    id: 'mr4', assetTag: 'AF-9921', assetName: 'iPhone 15 Pro Max',
-    assetState: 'Allocated', issue: 'SIM not recognized after iOS 18.4 update.',
-    priority: 'Urgent', requester: 'Rohan Roy', dept: 'Marketing',
-    raised: '2026-07-12', status: 'Pending',
-  },
-  {
-    id: 'mr5', assetTag: 'AF-3302', assetName: 'ThinkPad X1 Carbon',
-    assetState: 'Available', issue: 'Fan noise — high pitch squeal at boot for ~30 seconds.',
-    priority: 'Medium', requester: 'Aarav Mehta', dept: 'Engineering',
-    raised: '2026-07-06', status: 'Resolved',
-  },
-]
+interface AssetStub {
+  tag: string
+  name: string
+  state: LifecycleState
+  id: string
+}
 
 const PRIORITY_DOT: Record<Priority, string> = {
   Low: 'var(--status-available)',
@@ -121,7 +86,6 @@ function EmptyState({ icon, message }: { icon: React.ReactNode; message: string 
 const TAB_GROUPS: { label: string; statuses: WorkflowStatus[] }[] = [
   { label: 'Pending', statuses: ['Pending'] },
   { label: 'Approved / Rejected', statuses: ['Approved', 'Rejected'] },
-  { label: 'Assigned', statuses: ['Technician Assigned'] },
   { label: 'In Progress', statuses: ['In Progress'] },
   { label: 'Resolved', statuses: ['Resolved'] },
 ]
@@ -181,6 +145,12 @@ function RequestCard({
                 </button>
               </>
             )}
+            {req.status === 'Approved' && (
+              <button onClick={() => onResolve(req.id)}
+                style={{ background: 'none', border: '1px solid var(--accent-cyan)', padding: '3px 10px', cursor: 'pointer', fontSize: '0.68rem', color: 'var(--accent-cyan)' }}>
+                Start Maintenance
+              </button>
+            )}
             {req.status === 'In Progress' && (
               <button onClick={() => onResolve(req.id)}
                 style={{ background: 'none', border: '1px solid var(--accent-cyan)', padding: '3px 10px', cursor: 'pointer', fontSize: '0.68rem', color: 'var(--accent-cyan)' }}>
@@ -212,25 +182,83 @@ function RequestCard({
 
 const HISTORY = [
   { date: '2026-07-06', tag: 'AF-3302', name: 'ThinkPad X1 Carbon', category: 'Laptops', issue: 'Fan noise at boot', tech: 'Anil Mehta', resolution: 'Fan bearing replaced' },
-  { date: '2026-06-28', tag: 'AF-0824', name: 'Dell UltraSharp 27"', category: 'Monitors', issue: 'Backlight bleed', tech: 'Ramesh S.', resolution: 'Panel replaced under warranty' },
-  { date: '2026-06-15', tag: 'AF-4410', name: 'Logitech Rally Kit', category: 'AV Equipment', issue: 'Mic array not detected', tech: 'Priti V.', resolution: 'Firmware updated' },
 ]
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
+
+const mapDBPriority = (p: string): Priority => {
+  if (p === 'CRITICAL') return 'Urgent'
+  if (p === 'HIGH') return 'High'
+  if (p === 'MEDIUM') return 'Medium'
+  return 'Low'
+}
+
+const mapDBStatus = (s: string): WorkflowStatus => {
+  if (s === 'REQUESTED') return 'Pending'
+  if (s === 'APPROVED') return 'Approved'
+  if (s === 'REJECTED' || s === 'CANCELLED') return 'Rejected'
+  if (s === 'IN_PROGRESS') return 'In Progress'
+  return 'Resolved'
+}
+
+const mapDBState = (status: string): LifecycleState => {
+  if (status === 'AVAILABLE') return 'Available'
+  if (status === 'MAINTENANCE') return 'Under Maintenance'
+  return 'Available'
+}
 
 export default function MaintenancePage() {
   const { user } = useAuth()
   const canApprove = user.role === 'Admin' || user.role === 'Asset Manager'
 
-  const [requests, setRequests] = useState<MaintenanceRequest[]>(INITIAL_REQUESTS)
+  const [assets, setAssets] = useState<AssetStub[]>([])
+  const [requests, setRequests] = useState<MaintenanceRequest[]>([])
   const [activeTab, setActiveTab] = useState(0)
   const [filterCat, setFilterCat] = useState('')
 
   // Raise request form state
   const [showForm, setShowForm] = useState(false)
-  const [fAsset, setFAsset] = useState(ASSETS_STUB[0].tag)
+  const [fAsset, setFAsset] = useState('')
   const [fIssue, setFIssue] = useState('')
   const [fPriority, setFPriority] = useState<Priority>('Medium')
+
+  const fetchAllData = () => {
+    Promise.all([resourcesApi.getAll(), maintenanceApi.getAll()])
+      .then(([resData, reqData]) => {
+        const stubbed = resData.map((r) => ({
+          id: r.id,
+          tag: 'RES-' + r.id.substring(0, 4).toUpperCase(),
+          name: r.name,
+          state: mapDBState(r.status),
+        }))
+        setAssets(stubbed)
+        if (stubbed.length > 0 && !fAsset) {
+          setFAsset(stubbed[0].tag)
+        }
+
+        const mappedReqs = reqData.map((m) => ({
+          id: m.id,
+          assetTag: 'RES-' + m.resourceId.substring(0, 4).toUpperCase(),
+          assetName: m.resource?.name || 'Resource',
+          assetState: mapDBState(m.resource?.status || 'AVAILABLE'),
+          issue: m.description,
+          priority: mapDBPriority(m.priority),
+          requester: m.requestedBy?.fullName || 'Employee',
+          dept: 'Operations',
+          raised: m.createdAt.substring(0, 10),
+          status: mapDBStatus(m.status),
+          technicianNote: m.status === 'IN_PROGRESS' ? 'Currently in work' : m.rejectedReason,
+        }))
+        setRequests(mappedReqs)
+      })
+      .catch((err) => {
+        console.error('Failed to fetch maintenance data:', err)
+      })
+  }
+
+  useEffect(() => {
+    fetchAllData()
+  }, [])
 
   const tabRequests = requests.filter(r => TAB_GROUPS[activeTab].statuses.includes(r.status))
 
@@ -250,18 +278,25 @@ export default function MaintenancePage() {
     ))
   }
 
-  const handleRaise = (e: React.FormEvent) => {
+  const handleRaise = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!fIssue.trim()) return
-    const asset = ASSETS_STUB.find(a => a.tag === fAsset)!
-    const newReq: MaintenanceRequest = {
-      id: `mr${requests.length + 1}`, assetTag: fAsset, assetName: asset.name,
-      assetState: asset.state, issue: fIssue, priority: fPriority,
-      requester: user.name, dept: 'Engineering',
-      raised: new Date().toISOString().substring(0, 10), status: 'Pending',
+    if (!fIssue.trim() || !fAsset) return
+    const asset = assets.find(a => a.tag === fAsset)
+    if (!asset) return
+    try {
+      const priority = fPriority === 'Urgent' ? 'CRITICAL' : fPriority.toUpperCase()
+      await maintenanceApi.create({
+        resourceId: asset.id,
+        title: 'Repair Request',
+        description: fIssue,
+        priority: priority as any,
+      })
+      fetchAllData()
+      setFIssue('')
+      setShowForm(false)
+    } catch (err) {
+      console.error(err)
     }
-    setRequests([newReq, ...requests])
-    setFIssue(''); setShowForm(false)
   }
 
   const filteredHistory = filterCat ? HISTORY.filter(h => h.category === filterCat) : HISTORY
@@ -292,7 +327,7 @@ export default function MaintenancePage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <label style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Select Asset</label>
                 <select value={fAsset} onChange={e => setFAsset(e.target.value)} className="af-select">
-                  {ASSETS_STUB.map(a => <option key={a.tag} value={a.tag}>{a.tag} — {a.name}</option>)}
+                  {assets.map(a => <option key={a.tag} value={a.tag}>{a.tag} — {a.name}</option>)}
                 </select>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -310,7 +345,7 @@ export default function MaintenancePage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', background: 'var(--bg-void)', border: '1px solid var(--border-soft)' }}>
                 <span style={{ fontFamily: 'var(--font-data)', fontSize: '0.8rem', color: 'var(--accent-cyan)' }}>{fAsset}</span>
                 <div style={{ flex: 1, maxWidth: 280 }}>
-                  <StateRail currentState={ASSETS_STUB.find(a => a.tag === fAsset)?.state ?? 'Available'} size="compact" showLabels={false} />
+                  <StateRail currentState={assets.find(a => a.tag === fAsset)?.state ?? 'Available'} size="compact" showLabels={false} />
                 </div>
               </div>
             )}
