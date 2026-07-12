@@ -9,7 +9,6 @@
 
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import path from "node:path";
 
@@ -27,16 +26,7 @@ const prisma = new PrismaClient({ adapter });
 
 // ── Seed Constants ────────────────────────────────────────────
 
-const ROLES = ["ADMIN", "ASSET_MANAGER", "DEPARTMENT_HEAD", "EMPLOYEE"];
-
-const ADMIN_USER = {
-  fullName: "System Admin",
-  email: "admin@assetflow.com",
-  password: "Admin@123",
-  phone: "0000000000",
-  employeeCode: "EMP-ADMIN",
-  designation: "System Administrator",
-};
+const ROLES = ["ADMIN", "EMPLOYEE", "ASSET_MANAGER", "IT_MANAGER", "AUDITOR"];
 
 const DEFAULT_SETTINGS = {
   companyName: "AssetFlow Corporation",
@@ -71,9 +61,9 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
 // ── Main Seed Flow ────────────────────────────────────────────
 
 async function main(): Promise<void> {
-  console.log("🌱  Seeding database...\n");
+  console.log("🌱  Seeding database roles...\n");
 
-  // 1 — Upsert roles
+  // Upsert roles - idempotent operation
   for (const roleName of ROLES) {
     await prisma.role.upsert({
       where: { name: roleName },

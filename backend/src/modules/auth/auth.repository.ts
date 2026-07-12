@@ -48,6 +48,18 @@ export const updateUserLastLogin = (id: string) =>
     data: { lastLogin: new Date() },
   });
 
+export const countUsersByRole = (roleName: string) =>
+  prisma.user.count({
+    where: { role: { name: roleName } },
+  });
+
+export const updateUserRole = (userId: string, roleId: string) =>
+  prisma.user.update({
+    where: { id: userId },
+    data: { roleId },
+    include: { role: true },
+  });
+
 // ────────────────────────────────────────────────────────────
 // Refresh Token queries
 // ────────────────────────────────────────────────────────────

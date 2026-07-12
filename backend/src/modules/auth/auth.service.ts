@@ -89,23 +89,33 @@ export async function register(dto: RegisterDTO): Promise<UserResponseDTO> {
     throw ApiError.conflict("Email already exists");
   }
 
-  // 2. Resolve the EMPLOYEE role (default for all signups)
-  const employeeRole = await authRepo.findRoleByName("EMPLOYEE");
-  if (!employeeRole) {
-    throw ApiError.internal("Default role not found. Please run database seed.");
+  // 2. Admin bootstrap: Check if any ADMIN exists
+  const adminCount = await authRepo.countUsersByRole("ADMIN");
+  const isFirstUser = adminCount === 0;
+
+  // 3. Resolve role - ADMIN for first user, EMPLOYEE for others
+  const roleName = isFirstUser ? "ADMIN" : "EMPLOYEE";
+  const role = await authRepo.findRoleByName(roleName);
+  if (!role) {
+    throw ApiError.internal(`Role ${roleName} not found. Please run database seed.`);
   }
 
-  // 3. Hash the password
+  // 4. Hash the password
   const hashedPassword = await hashPassword(dto.password);
 
-  // 4. Create the user
+  // 5. Create the user
   const user = await authRepo.createUser({
     fullName: dto.fullName,
     email: dto.email,
     password: hashedPassword,
     phone: dto.phone,
-    roleId: employeeRole.id,
+    roleId: role.id,
   });
+
+  // 6. Log bootstrap promotion
+  if (isFirstUser) {
+    console.log(`🎉  First user registered - automatically promoted to ADMIN: ${dto.email}`);
+  }
 
   return toUserResponse(user);
 }
@@ -243,4 +253,36 @@ export async function getMe(userId: string): Promise<UserResponseDTO> {
   }
 
   return toUserResponse(user);
+}
+
+// ────────────────────────────────────────────────────────────
+// updateUserRole
+// ────────────────────────────────────────────────────────────
+
+export async function updateUserRole(
+  userId: string,
+  roleName: string,
+  currentUserId: string
+): Promise<UserResponseDTO> {
+  // 1. Verify the target user exists
+  const targetUser = await authRepo.findUserById(userId);
+  if (!targetUser) {
+    throw ApiError.notFound("User not found");
+  }
+
+  // 2. Verify the role exists
+  const role = await authRepo.findRoleByName(roleName);
+  if (!role) {
+    throw ApiError.badRequest(`Role '${roleName}' does not exist`);
+  }
+
+  // 3. Prevent self-demotion from ADMIN
+  if (targetUser.id === currentUserId && targetUser.role.name === "ADMIN" && roleName !== "ADMIN") {
+    throw ApiError.badRequest("Cannot demote yourself from ADMIN role");
+  }
+
+  // 4. Update the user's role
+  const updatedUser = await authRepo.updateUserRole(userId, role.id);
+
+  return toUserResponse(updatedUser);
 }
