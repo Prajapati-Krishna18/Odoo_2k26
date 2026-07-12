@@ -1,5 +1,12 @@
-// pages/index.ts
-// Re-export all page components from here as they are created.
-// Example:
-//   export { default as Dashboard } from './Dashboard/Dashboard'
-//   export { default as ESGReport } from './ESGReport/ESGReport'
+export { default as DashboardPage } from './Dashboard/DashboardPage'
+export { default as OrgSetupPage } from './OrgSetup/OrgSetupPage'
+export { default as AssetDirectoryPage } from './Assets/AssetDirectoryPage'
+export { default as AllocationsPage } from './Allocations/AllocationsPage'
+export { default as BookingsPage } from './Bookings/BookingsPage'
+export { default as MaintenancePage } from './Maintenance/MaintenancePage'
+export { default as AuditsPage } from './Audits/AuditsPage'
+export { default as ReportsPage } from './Reports/ReportsPage'
+export { default as ActivityPage } from './Activity/ActivityPage'
+export { default as StateRailTestPage } from './StateRailTest/StateRailTestPage'
+export { default as PlaceholderPage } from './PlaceholderPage'
+export { useAuth } from '@/context/AuthContext'

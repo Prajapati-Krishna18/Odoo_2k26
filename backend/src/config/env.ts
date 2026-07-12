@@ -24,6 +24,7 @@ const REQUIRED_ENV_VARS = [
   "JWT_REFRESH_SECRET",
   "JWT_ACCESS_EXPIRES",
   "JWT_REFRESH_EXPIRES",
+  "GEMINI_API_KEY",
 ] as const;
 
 const missing = REQUIRED_ENV_VARS.filter((key) => !process.env[key]);
@@ -51,6 +52,9 @@ export const env = {
   JWT_REFRESH_SECRET: process.env["JWT_REFRESH_SECRET"]!,
   JWT_ACCESS_EXPIRES: process.env["JWT_ACCESS_EXPIRES"]!,
   JWT_REFRESH_EXPIRES: process.env["JWT_REFRESH_EXPIRES"]!,
+
+  // Gemini
+  GEMINI_API_KEY: process.env["GEMINI_API_KEY"]!,
 
   /** Convenience flags */
   isDevelopment: process.env["NODE_ENV"] === "development",

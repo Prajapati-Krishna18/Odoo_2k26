@@ -14,6 +14,7 @@ import {
   loginSchema,
   refreshTokenSchema,
 } from "./auth.validator.js";
+import { ActivityLogger } from "../activity/activity.service.js";
 
 // ────────────────────────────────────────────────────────────
 // POST /api/auth/register
@@ -51,6 +52,14 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   }
 
   const result = await authService.login(parsed.data);
+  ActivityLogger.log(
+    result.user.id,
+    "LOGIN",
+    "AUTH",
+    result.user.id,
+    "User logged in successfully",
+    req
+  );
   const response = ApiResponse.ok("Login successful", result);
   res.status(response.statusCode).json(response);
 };

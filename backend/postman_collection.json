@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "AssetFlow — Full Setup APIs",
-    "description": "Auth, RBAC, and Organisation Setup (Departments, Categories, Employees) endpoints for the AssetFlow backend.",
+    "name": "AssetFlow — ERP System APIs",
+    "description": "Auth, RBAC, Organisation Setup, Dashboard, Notifications, Activity Logs, Global Search, Shared Uploads, Reports, Analytics, System Diagnostics, Settings, and AI Assistant endpoints for the AssetFlow ERP system.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -28,6 +28,10 @@
     {
       "key": "employeeId",
       "value": ""
+    },
+    {
+      "key": "notificationId",
+      "value": ""
     }
   ],
   "item": [
@@ -51,7 +55,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Jane Doe\",\n  \"email\": \"jane@example.com\",\n  \"password\": \"Test@1234\",\n  \"phone\": \"1234567890\"\n}"
+              "raw": "{\n  \"fullName\": \"Krishna Prajapati\",\n  \"email\": \"krishna@example.com\",\n  \"password\": \"Test@1234\",\n  \"phone\": \"1234567890\"\n}"
             }
           },
           "response": []
@@ -225,259 +229,13 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/departments?page=1&limit=10&search=ENG&sortBy=createdAt&sortOrder=desc",
+              "raw": "{{baseUrl}}/departments?page=1&limit=10",
               "host": ["{{baseUrl}}"],
               "path": ["departments"],
               "query": [
                 { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" },
-                { "key": "search", "value": "ENG" },
-                { "key": "sortBy", "value": "createdAt" },
-                { "key": "sortOrder", "value": "desc" }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Department Details",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/departments/{{departmentId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["departments", "{{departmentId}}"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update Department",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/departments/{{departmentId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["departments", "{{departmentId}}"]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"description\": \"Core Product & Platform Engineering\"\n}"
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update Status",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/departments/{{departmentId}}/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["departments", "{{departmentId}}", "status"]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"INACTIVE\"\n}"
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Department (Soft)",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/departments/{{departmentId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["departments", "{{departmentId}}"]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Categories",
-      "item": [
-        {
-          "name": "Create Category",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const res = pm.response.json();",
-                  "if (res.success && res.data && res.data.id) {",
-                  "  pm.collectionVariables.set('categoryId', res.data.id);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories",
-              "host": ["{{baseUrl}}"],
-              "path": ["categories"]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Laptops\",\n  \"description\": \"Company workstation laptops\",\n  \"icon\": \"laptop-icon\",\n  \"requiresWarranty\": true\n}"
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "List Categories",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories?page=1&limit=10",
-              "host": ["{{baseUrl}}"],
-              "path": ["categories"],
-              "query": [
-                { "key": "page", "value": "1" },
                 { "key": "limit", "value": "10" }
               ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Category Details",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{categoryId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["categories", "{{categoryId}}"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update Category",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{categoryId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["categories", "{{categoryId}}"]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"description\": \"Workstations and Development Laptops\"\n}"
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update Status",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{categoryId}}/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["categories", "{{categoryId}}", "status"]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"INACTIVE\"\n}"
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Category (Soft)",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{categoryId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["categories", "{{categoryId}}"]
             }
           },
           "response": []
@@ -508,9 +266,14 @@
             }
           },
           "response": []
-        },
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
         {
-          "name": "Get Employee Details",
+          "name": "Get Dashboard Stats",
           "request": {
             "method": "GET",
             "header": [
@@ -520,15 +283,248 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/employees/{{employeeId}}",
+              "raw": "{{baseUrl}}/dashboard",
               "host": ["{{baseUrl}}"],
-              "path": ["employees", "{{employeeId}}"]
+              "path": ["dashboard"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Activities",
+      "item": [
+        {
+          "name": "List Activities",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activities?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["activities"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Search",
+      "item": [
+        {
+          "name": "Global Search",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/search?q=krishna",
+              "host": ["{{baseUrl}}"],
+              "path": ["search"],
+              "query": [
+                { "key": "q", "value": "krishna" }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Summary Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "summary"]
             }
           },
           "response": []
         },
         {
-          "name": "Update Employee Profile",
+          "name": "Export Employee Directory (XLSX)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports/export?entity=employees&format=xlsx",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "export"],
+              "query": [
+                { "key": "entity", "value": "employees" },
+                { "key": "format", "value": "xlsx" }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Get Weekly Trends",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/analytics?cycle=weekly",
+              "host": ["{{baseUrl}}"],
+              "path": ["analytics"],
+              "query": [
+                { "key": "cycle", "value": "weekly" }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "System Diagnostics",
+      "item": [
+        {
+          "name": "Get Health Check",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/system/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["system", "health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get System Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/system/info",
+              "host": ["{{baseUrl}}"],
+              "path": ["system", "info"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Version Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/system/version",
+              "host": ["{{baseUrl}}"],
+              "path": ["system", "version"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "Get System Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["settings"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update System Settings",
           "request": {
             "method": "PATCH",
             "header": [
@@ -542,21 +538,26 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/employees/{{employeeId}}",
+              "raw": "{{baseUrl}}/settings",
               "host": ["{{baseUrl}}"],
-              "path": ["employees", "{{employeeId}}"]
+              "path": ["settings"]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"designation\": \"Senior Engineer\",\n  \"joiningDate\": \"2026-07-12T00:00:00.000Z\"\n}"
+              "raw": "{\n  \"companyName\": \"AssetFlow ERP Inc.\",\n  \"timezone\": \"Asia/Kolkata\",\n  \"theme\": \"system\",\n  \"auditRetentionDays\": 120\n}"
             }
           },
           "response": []
-        },
+        }
+      ]
+    },
+    {
+      "name": "AI Assistant",
+      "item": [
         {
-          "name": "Promote Employee",
+          "name": "Chat (Asset Owner Query)",
           "request": {
-            "method": "PATCH",
+            "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
@@ -568,21 +569,21 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/employees/{{employeeId}}/promote",
+              "raw": "{{baseUrl}}/ai/chat",
               "host": ["{{baseUrl}}"],
-              "path": ["employees", "{{employeeId}}", "promote"]
+              "path": ["ai", "chat"]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"roleName\": \"DEPARTMENT_HEAD\"\n}"
+              "raw": "{\n  \"message\": \"Who has Laptop AF-001?\"\n}"
             }
           },
           "response": []
         },
         {
-          "name": "Transfer Employee Department",
+          "name": "Chat (Dashboard Summary Query)",
           "request": {
-            "method": "PATCH",
+            "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
@@ -594,21 +595,21 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/employees/{{employeeId}}/department",
+              "raw": "{{baseUrl}}/ai/chat",
               "host": ["{{baseUrl}}"],
-              "path": ["employees", "{{employeeId}}", "department"]
+              "path": ["ai", "chat"]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"departmentId\": \"{{departmentId}}\"\n}"
+              "raw": "{\n  \"message\": \"Summarise the dashboard and active stats\"\n}"
             }
           },
           "response": []
         },
         {
-          "name": "Update Employee Status",
+          "name": "Chat (Department Query)",
           "request": {
-            "method": "PATCH",
+            "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
@@ -620,13 +621,13 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/employees/{{employeeId}}/status",
+              "raw": "{{baseUrl}}/ai/chat",
               "host": ["{{baseUrl}}"],
-              "path": ["employees", "{{employeeId}}", "status"]
+              "path": ["ai", "chat"]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+              "raw": "{\n  \"message\": \"Tell me about the Engineering department\"\n}"
             }
           },
           "response": []

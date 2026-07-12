@@ -1,54 +1,62 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from '@/context/AuthContext'
+import { AppShell } from '@/layouts/AppShell'
+import { ProtectedRoute } from '@/components/ProtectedRoute'
+import LoginPage from '@/pages/Login/LoginPage'
+import SignupPage from '@/pages/Login/SignupPage'
+import ForgotPasswordPage from '@/pages/Login/ForgotPasswordPage'
+import {
+  DashboardPage,
+  OrgSetupPage,
+  AssetDirectoryPage,
+  AllocationsPage,
+  BookingsPage,
+  MaintenancePage,
+  AuditsPage,
+  ReportsPage,
+  ActivityPage,
+  StateRailTestPage,
+} from '@/pages'
 
-// Placeholder — pages will be built in subsequent steps
+function PublicRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth()
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />
+  }
+  return <>{children}</>
+}
+
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <div
-              style={{
-                minHeight: '100dvh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'column',
-                gap: '16px',
-              }}
-            >
-              <h1
-                style={{
-                  fontFamily: 'Fraunces, serif',
-                  fontWeight: 700,
-                  fontSize: 'clamp(2rem, 5vw, 3.5rem)',
-                  letterSpacing: '-0.03em',
-                  color: 'var(--text-primary)',
-                }}
-              >
-                Ecosphere
-              </h1>
-              <p
-                style={{
-                  fontFamily: 'Inter, sans-serif',
-                  color: 'var(--text-muted)',
-                  fontSize: '1rem',
-                }}
-              >
-                ESG Intelligence Platform — scaffold ready ✓
-              </p>
-              <span
-                className="chip chip-env"
-                style={{ fontFamily: 'Space Mono, monospace', fontSize: '11px' }}
-              >
-                v0.1.0 · tokens loaded
-              </span>
-            </div>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Public auth routes */}
+          <Route path="/" element={<PublicRoute><LoginPage /></PublicRoute>} />
+          <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
+          <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+
+          {/* Protected app shell */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<AppShell />}>
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/org-setup" element={<OrgSetupPage />} />
+              <Route path="/assets" element={<AssetDirectoryPage />} />
+              <Route path="/allocations" element={<AllocationsPage />} />
+              <Route path="/bookings" element={<BookingsPage />} />
+              <Route path="/maintenance" element={<MaintenancePage />} />
+              <Route path="/audits" element={<AuditsPage />} />
+              <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/activity" element={<ActivityPage />} />
+              <Route path="/state-rail-test" element={<StateRailTestPage />} />
+            </Route>
+          </Route>
+
+          {/* Catch-all redirect */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   )
 }
 

@@ -1,14 +1,13 @@
 /**
- * Ecosphere Design Tokens — JS/TS mirror of global.css
- * Use these in framer-motion variants, dynamic SVG, and inline styles.
- * For Tailwind utilities, always prefer CSS classes.
+ * AssetFlow Design Tokens — JS/TS mirror of global.css
+ * Use in framer-motion variants, dynamic SVG, and inline styles.
  */
 
 export const colors = {
   bg: {
-    void:         '#0B120E',
-    surface:      '#131F19',
-    surfaceRaised:'#1B2B22',
+    void:          '#0B120E',
+    surface:       '#131F19',
+    surfaceRaised: '#1B2B22',
   },
   border: {
     soft: '#24382C',
@@ -17,69 +16,48 @@ export const colors = {
     primary: '#EDF3EA',
     muted:   '#8FA396',
   },
-  env: {
-    primary: '#2FA66B',
-    glow:    '#7FE3A8',
+  accent: {
+    cyan: '#0CCAC8',
   },
-  social: {
-    primary: '#E3A857',
-    glow:    '#F5CE8C',
+  status: {
+    available:   '#2FA66B',
+    allocated:   '#4869A6',
+    reserved:    '#E3A857',
+    maintenance: '#9061F9',
+    lost:        '#E06258',
+    retired:     '#6B7280',
+    disposed:    '#374151',
   },
-  gov: {
-    primary: '#4869A6',
-    glow:    '#8FB0E0',
-  },
-  /** XP/Gamification ONLY — never use for E/S/G chart data */
-  xp: {
-    accent: '#C7F45B',
-  },
-  danger: '#E06258',
 } as const
 
 export const fonts = {
-  display: "'Fraunces', Georgia, serif",
+  display: "'Space Grotesk', system-ui, sans-serif",
   body:    "'Inter', system-ui, sans-serif",
-  /** Use for ALL numeric/data display: scores, XP, dates, IDs, percentages */
-  mono:    "'Space Mono', 'Courier New', monospace",
+  mono:    "'Space Mono', monospace",
+  data:    "'IBM Plex Mono', monospace",
 } as const
 
-export const radius = {
-  panel:   '24px',
-  panelSm: '20px',
-  panelLg: '28px',
-  chip:    '10px',
-  btn:     '12px',
-} as const
+/** All 7 lifecycle state keys in order */
+export const StateKeys = [
+  'available',
+  'allocated',
+  'reserved',
+  'maintenance',
+  'lost',
+  'retired',
+  'disposed',
+] as const
 
-export const shadows = {
-  soft:       '0 4px 24px 0 rgba(0, 0, 0, 0.35)',
-  panel:      '0 8px 40px 0 rgba(0, 0, 0, 0.40)',
-  envGlow:    '0 0 28px 0 rgba(127, 227, 168, 0.18)',
-  socialGlow: '0 0 28px 0 rgba(245, 206, 140, 0.18)',
-  govGlow:    '0 0 28px 0 rgba(143, 176, 224, 0.18)',
-  xpGlow:     '0 0 28px 0 rgba(199, 244, 91,  0.22)',
-} as const
+export type StateKey = typeof StateKeys[number]
 
-/** Module metadata — used for coloring charts, chips, panel glows */
-export const modules = {
-  env: {
-    label:   'Environmental',
-    primary: colors.env.primary,
-    glow:    colors.env.glow,
-    shadow:  shadows.envGlow,
-  },
-  social: {
-    label:   'Social',
-    primary: colors.social.primary,
-    glow:    colors.social.glow,
-    shadow:  shadows.socialGlow,
-  },
-  gov: {
-    label:   'Governance',
-    primary: colors.gov.primary,
-    glow:    colors.gov.glow,
-    shadow:  shadows.govGlow,
-  },
-} as const
+export const StateLabels = [
+  'Available',
+  'Allocated',
+  'Reserved',
+  'Under Maintenance',
+  'Lost',
+  'Retired',
+  'Disposed',
+] as const
 
-export type ModuleKey = keyof typeof modules
+export type StateLabel = typeof StateLabels[number]

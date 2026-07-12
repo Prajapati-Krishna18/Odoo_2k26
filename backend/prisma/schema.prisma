@@ -1,14 +1,15 @@
 // ─────────────────────────────────────────────────────────────
 // AssetFlow — Prisma Schema
-// Phase 3: Organization Setup
+// Merged Schema: Phase 3 + Phase 6
 // ─────────────────────────────────────────────────────────────
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
 }
 
 // ── Enums ────────────────────────────────────────────────────
@@ -23,22 +24,52 @@ enum CategoryStatus {
   INACTIVE
 }
 
-enum AssetStatus {
-  AVAILABLE
-  ALLOCATED
-  RESERVED
-  UNDER_MAINTENANCE
-  LOST
-  RETIRED
-  DISPOSED
+enum ResourceType {
+  MEETING_ROOM
+  VEHICLE
+  EQUIPMENT
 }
 
-enum AssetCondition {
-  NEW
-  EXCELLENT
-  GOOD
-  FAIR
-  DAMAGED
+enum ResourceStatus {
+  AVAILABLE
+  MAINTENANCE
+  INACTIVE
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+enum MaintenanceStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum NotificationType {
+  BOOKING_CREATED
+  BOOKING_APPROVED
+  BOOKING_REJECTED
+  BOOKING_CANCELLED
+  BOOKING_REMINDER
+  MAINTENANCE_APPROVED
+  MAINTENANCE_REJECTED
+  MAINTENANCE_STARTING_SOON
+  MAINTENANCE_COMPLETED
 }
 
 // ── Role ─────────────────────────────────────────────────────
@@ -49,7 +80,8 @@ model Role {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users User[]
+  users           User[]
+  rolePermissions RolePermission[]
 
   @@map("roles")
 }
@@ -78,10 +110,20 @@ model User {
 
   role          Role           @relation(fields: [roleId], references: [id])
   refreshTokens RefreshToken[]
+  bookings      Booking[]
+  notifications Notification[]
+
+  maintenanceRequested MaintenanceRequest[] @relation("RequestedBy")
+  maintenanceApproved  MaintenanceRequest[] @relation("ApprovedBy")
 
   // Relations
   department       Department? @relation("DepartmentEmployees", fields: [departmentId], references: [id])
   headedDepartment Department? @relation("DepartmentHead")
+
+  activityLogs      ActivityLog[]
+  assetAllocations  AssetAllocation[] @relation("AssetAllocationEmployee")
+  allocationsMade   AssetAllocation[] @relation("AssetAllocationAllocator")
+  assetBookings     AssetBooking[]
 
   @@map("users")
 }
@@ -120,6 +162,7 @@ model Department {
   childDepartments Department[] @relation("SubDepartments")
   departmentHead   User?        @relation("DepartmentHead", fields: [departmentHeadId], references: [id])
   employees        User[]       @relation("DepartmentEmployees")
+  assets           Asset[]
 
   @@map("departments")
 }
@@ -142,66 +185,292 @@ model AssetCategory {
   @@map("asset_categories")
 }
 
-// ── Asset ───────────────────────────────────────────────────────
+// ── Activity Log ─────────────────────────────────────────────
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  action      String   // e.g. "LOGIN", "LOGOUT", "CREATE", "UPDATE", "ROLE_CHANGE"
+  module      String   // e.g. "AUTH", "DEPARTMENT", "EMPLOYEE"
+  entityId    String?  @map("entity_id")
+  description String
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("activity_logs")
+}
+
+// ── Resource ─────────────────────────────────────────────────
+
+model Resource {
+  id          String         @id @default(uuid())
+  name        String
+  type        ResourceType
+  status      ResourceStatus @default(AVAILABLE)
+  description String?
+  location    String?
+  capacity    Int?
+  quantity    Int            @default(1)
+  imageUrl    String?        @map("image_url")
+  metadata    Json?
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  bookings            Booking[]
+  maintenanceRequests MaintenanceRequest[]
+
+  @@index([type])
+  @@index([status])
+  @@map("resources")
+}
+
+// ── Booking ──────────────────────────────────────────────────
+
+model Booking {
+  id             String        @id @default(uuid())
+  resourceId     String        @map("resource_id")
+  userId         String        @map("user_id")
+  title          String
+  description    String?
+  startTime      DateTime      @map("start_time")
+  endTime        DateTime      @map("end_time")
+  status         BookingStatus @default(PENDING)
+  rejectedReason String?       @map("rejected_reason")
+  cancelReason   String?       @map("cancel_reason")
+  attendeeCount  Int?          @map("attendee_count")
+  purpose        String?
+  returnCondition String?      @map("return_condition")
+  isExclusive    Boolean       @default(true) @map("is_exclusive")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  resource      Resource       @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+
+  @@index([resourceId])
+  @@index([userId])
+  @@index([startTime, endTime])
+  @@index([status])
+  @@map("bookings")
+}
+
+// ── Maintenance Request ──────────────────────────────────────
+
+model MaintenanceRequest {
+  id              String            @id @default(uuid())
+  resourceId      String            @map("resource_id")
+  requestedById   String            @map("requested_by_id")
+  approvedById    String?           @map("approved_by_id")
+  title           String
+  description     String
+  priority        Priority          @default(MEDIUM)
+  status          MaintenanceStatus @default(REQUESTED)
+  scheduledStart  DateTime?         @map("scheduled_start")
+  scheduledEnd    DateTime?         @map("scheduled_end")
+  startedAt       DateTime?         @map("started_at")
+  completedAt     DateTime?         @map("completed_at")
+  rejectedReason  String?           @map("rejected_reason")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  resource      Resource       @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  requestedBy   User           @relation("RequestedBy", fields: [requestedById], references: [id])
+  approvedBy    User?          @relation("ApprovedBy", fields: [approvedById], references: [id])
+  notifications Notification[]
+
+  @@index([resourceId])
+  @@index([requestedById])
+  @@index([status])
+  @@index([priority])
+  @@map("maintenance_requests")
+}
+
+// ── Notification ─────────────────────────────────────────────
+
+model Notification {
+  id                   String           @id @default(uuid())
+  userId               String           @map("user_id")
+  type                 String           @default("INFO")
+  title                String
+  message              String
+  isRead               Boolean          @default(false) @map("is_read")
+  bookingId            String?          @map("booking_id")
+  maintenanceRequestId String?          @map("maintenance_request_id")
+  createdAt            DateTime         @default(now()) @map("created_at")
+
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  booking            Booking?            @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  maintenanceRequest MaintenanceRequest? @relation(fields: [maintenanceRequestId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ── System Settings ──────────────────────────────────────────
+
+model SystemSetting {
+  id                  String   @id @default(uuid())
+  companyName         String   @map("company_name")
+  companyLogo         String?  @map("company_logo")
+  address             String?
+  timezone            String   @default("UTC")
+  dateFormat          String   @default("YYYY-MM-DD") @map("date_format")
+  currency            String   @default("USD")
+  language            String   @default("en")
+  theme               String   @default("dark")
+  
+  // Audit configurations
+  auditRetentionDays  Int      @default(90) @map("audit_retention_days")
+  auditLogLevel       String   @default("INFO") @map("audit_log_level")
+  auditEnabledModules String[] @default(["AUTH", "DEPARTMENT", "EMPLOYEE"]) @map("audit_enabled_modules")
+  
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
+
+// ── Permissions ──────────────────────────────────────────────
+
+model Permission {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String @map("role_id")
+  permissionId String @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ── Asset Status & Allocation Status ─────────────────────────
+
+enum AssetStatus {
+  AVAILABLE
+  ALLOCATED
+  RESERVED
+  MAINTENANCE
+  LOST
+  RETIRED
+  DISPOSED
+}
+
+enum AllocationStatus {
+  ACTIVE
+  RETURNED
+  OVERDUE
+}
+
+// ── Asset ────────────────────────────────────────────────────
 
 model Asset {
-  id             String         @id @default(uuid())
-  assetTag       String         @unique @map("asset_tag")
-  serialNumber   String         @unique @map("serial_number")
-  assetName      String         @map("asset_name")
-  description    String?
-  manufacturer   String?
-  modelNumber    String?        @map("model_number")
-  purchaseDate   DateTime?      @map("purchase_date")
-  purchaseCost   Decimal?       @map("purchase_cost") @db.Decimal(10, 2)
-  warrantyExpiry DateTime?      @map("warranty_expiry")
-  location       String?
-  status         AssetStatus    @default(AVAILABLE)
-  condition      AssetCondition @default(NEW)
-  qrCode         String?        @map("qr_code")
-  ownerId        String?        @map("owner_id")
-  departmentId   String?        @map("department_id")
-  categoryId     String?        @map("category_id")
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
+  id              String      @id @default(uuid())
+  code            String      @unique
+  name            String
+  description     String?
+  serialNumber    String?     @unique @map("serial_number")
+  categoryId      String      @map("category_id")
+  status          AssetStatus @default(AVAILABLE)
+  location        String?
+  departmentId    String?     @map("department_id")
+  acquisitionDate DateTime?   @map("acquisition_date")
+  acquisitionCost Decimal?    @map("acquisition_cost")
+  condition       String?     @default("New")
+  sharedBookable  Boolean     @default(false) @map("shared_bookable")
+  imageUrl        String?     @map("image_url")
+  warrantyExpiry  DateTime?   @map("warranty_expiry")
+  notes           String?
+  isDeleted       Boolean     @default(false) @map("is_deleted")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
 
-  category AssetCategory? @relation(fields: [categoryId], references: [id])
-  images   AssetImage[]
-  history  AssetHistory[]
+  category          AssetCategory      @relation(fields: [categoryId], references: [id])
+  department        Department?        @relation(fields: [departmentId], references: [id])
+  allocations       AssetAllocation[]
+  maintenanceRecords MaintenanceRecord[]
+  bookings          AssetBooking[]
 
-  @@index([assetTag])
-  @@index([serialNumber])
-  @@index([categoryId])
-  @@index([status])
   @@map("assets")
 }
 
-// ── Asset Image ──────────────────────────────────────────────────
+// ── Asset Allocation ─────────────────────────────────────────
 
-model AssetImage {
-  id        String   @id @default(uuid())
-  assetId   String   @map("asset_id")
-  url       String
-  createdAt DateTime @default(now()) @map("created_at")
+model AssetAllocation {
+  id               String           @id @default(uuid())
+  assetId          String           @map("asset_id")
+  employeeId       String           @map("employee_id")
+  allocatedAt      DateTime         @default(now()) @map("allocated_at")
+  returnedAt       DateTime?        @map("returned_at")
+  expectedReturnAt DateTime?        @map("expected_return_at")
+  status           AllocationStatus @default(ACTIVE)
+  notes            String?
+  allocatedById    String           @map("allocated_by_id")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
 
-  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  asset       Asset @relation(fields: [assetId], references: [id])
+  employee    User  @relation("AssetAllocationEmployee", fields: [employeeId], references: [id])
+  allocatedBy User  @relation("AssetAllocationAllocator", fields: [allocatedById], references: [id])
 
   @@index([assetId])
-  @@map("asset_images")
+  @@index([employeeId])
+  @@map("asset_allocations")
 }
 
-// ── Asset History ────────────────────────────────────────────────
+// ── Booking ──────────────────────────────────────────────────
 
-model AssetHistory {
-  id          String   @id @default(uuid())
-  assetId     String   @map("asset_id")
-  action      String
-  remarks     String?
-  performedBy String   @map("performed_by")
-  createdAt   DateTime @default(now()) @map("created_at")
+model AssetBooking {
+  id         String   @id @default(uuid())
+  assetId    String   @map("asset_id")
+  bookedById String   @map("booked_by_id")
+  departmentId String? @map("department_id")
+  startDate  DateTime @map("start_date")
+  endDate    DateTime @map("end_date")
+  purpose    String?
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
-  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  asset    Asset @relation(fields: [assetId], references: [id])
+  bookedBy User  @relation(fields: [bookedById], references: [id])
 
   @@index([assetId])
-  @@map("asset_history")
+  @@index([bookedById])
+  @@map("asset_bookings")
+}
+
+// ── Maintenance Record ───────────────────────────────────────
+
+model MaintenanceRecord {
+  id          String   @id @default(uuid())
+  assetId     String   @map("asset_id")
+  type        String
+  description String?
+  date        DateTime @default(now())
+  cost        Decimal? @default(0)
+  notes       String?
+  performedBy String?  @map("performed_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  asset Asset @relation(fields: [assetId], references: [id])
+
+  @@index([assetId])
+  @@map("maintenance_records")
 }

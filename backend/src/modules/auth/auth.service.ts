@@ -18,6 +18,7 @@ import {
   type JwtPayload,
 } from "../../utils/jwt.js";
 import * as authRepo from "./auth.repository.js";
+import { ActivityLogger } from "../activity/activity.service.js";
 import type {
   RegisterDTO,
   LoginDTO,
@@ -223,9 +224,16 @@ export async function refreshAccessToken(
 // ────────────────────────────────────────────────────────────
 
 export async function logout(refreshToken: string): Promise<void> {
-  // Silently succeed even if the token doesn't exist
   const existing = await authRepo.findRefreshToken(refreshToken);
   if (existing) {
+    // Log logout activity in the background
+    ActivityLogger.log(
+      existing.userId,
+      "LOGOUT",
+      "AUTH",
+      existing.userId,
+      "User logged out successfully"
+    );
     await authRepo.deleteRefreshToken(refreshToken);
   }
 }
