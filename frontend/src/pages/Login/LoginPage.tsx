@@ -11,14 +11,21 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setTimeout(() => {
-      login()
+    setErrorMsg('')
+    try {
+      await login(email, password)
       navigate('/dashboard', { replace: true })
-    }, 600)
+    } catch (err: any) {
+      console.error(err)
+      setErrorMsg(err.message || 'Invalid email or password.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -35,6 +42,19 @@ export default function LoginPage() {
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Sign in</h1>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>Access your workspace. Your role is assigned by an admin.</p>
         </div>
+
+        {errorMsg && (
+          <div style={{
+            fontSize: '0.75rem',
+            color: '#ef4444',
+            background: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            padding: '8px 12px',
+            lineHeight: 1.4
+          }}>
+            {errorMsg}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
