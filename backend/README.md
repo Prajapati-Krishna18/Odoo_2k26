@@ -1,186 +1,169 @@
-# AssetFlow Backend
+# AssetFlow Backend — Core Infrastructure & Setup
 
-**Enterprise Asset & Resource Management System** — Production-ready backend foundation built with Node.js, Express, TypeScript, Prisma, and PostgreSQL (Supabase).
+**Enterprise Asset & Resource Management System** — Production-ready Express & TypeScript backend built with modular vertical architecture, Prisma 7 ORM, and PostgreSQL (Supabase).
 
 ---
 
-## Tech Stack
+## 🛠️ Technology Stack
 
 | Layer        | Technology                        |
 | ------------ | --------------------------------- |
 | Runtime      | Node.js                           |
 | Framework    | Express.js                        |
-| Language     | TypeScript                        |
-| ORM          | Prisma                            |
+| Language     | TypeScript (strict mode, ES2022/NodeNext) |
+| ORM          | Prisma ORM (v7.8.0 with `@prisma/adapter-pg` Driver Adapter) |
 | Database     | PostgreSQL (Supabase)             |
 | Validation   | Zod                               |
+| Encryption   | Bcrypt (12 rounds)                |
+| Auth tokens  | JsonWebToken (JWT)                |
 | Security     | Helmet, CORS, express-rate-limit  |
-| Logging      | Morgan                            |
+| Logging      | Morgan & custom ISO request logger |
 | Dev Server   | tsx (watch mode)                   |
 
 ---
 
-## Installation
+## 💻 Frontend Integration
 
-```bash
-# 1. Navigate to the backend directory
-cd backend
+The frontend of this application is developed separately. The backend integrates with it through standard REST API endpoints.
 
-# 2. Install dependencies
-npm install
-
-# 3. Generate the Prisma client
-npm run prisma:generate
-```
+To connect the frontend:
+1.  Verify the `CLIENT_URL` environment variable matches your frontend URL (e.g. `http://localhost:3000`).
+2.  Enable cookie credentials support on your frontend request builder (e.g. Axios `withCredentials: true` or Fetch `credentials: 'include'`).
+3.  Target HTTP endpoints using the `/api` prefix (e.g. `http://localhost:8000/api`).
 
 ---
 
-## Environment Variables
+## 🚀 Key Modules Built
 
-Copy the example env file and fill in your Supabase credentials:
+### 1. Authentication & RBAC (`src/modules/auth`)
+*   **Endpoints:**
+    *   `POST /api/auth/register` — Create a default `EMPLOYEE` profile.
+    *   `POST /api/auth/login` — Verifies password, returns access/refresh token pair and user profile.
+    *   `POST /api/auth/refresh-token` — Rotates and returns a new short-lived access token.
+    *   `POST /api/auth/logout` — Revokes and deletes session refresh token from the database.
+    *   `GET /api/auth/me` — Fetches current user profile details (protected).
+*   **Security Middlewares:**
+    *   `authenticate` — Parses Bearer tokens from `Authorization` header, decrypts JWT, and binds payload to `req.user`.
+    *   `authorize(...roles)` — RBAC validation checking user role limits.
 
-```bash
-cp .env.example .env
-```
+### 2. Department Management (`src/modules/department`)
+*   **Endpoints:**
+    *   `POST /api/departments` — Creates a new department.
+    *   `GET /api/departments` — Lists departments (supports pagination, keyword search, status filter, and sorting).
+    *   `GET /api/departments/:id` — Retrives full department details (including parent and head profile).
+    *   `PATCH /api/departments/:id` — Updates department properties.
+    *   `PATCH /api/departments/:id/status` — Toggles active/inactive status.
+    *   `DELETE /api/departments/:id` — Soft-deletes department (blocks action if active employees or sub-departments remain).
 
-| Variable       | Description                              |
-| -------------- | ---------------------------------------- |
-| `PORT`         | Server port (default `8000`)             |
-| `DATABASE_URL` | Supabase pooled connection string        |
-| `DIRECT_URL`   | Supabase direct connection string        |
-| `NODE_ENV`     | `development` / `production` / `test`    |
-| `CLIENT_URL`   | Frontend origin for CORS (e.g. `http://localhost:3000`) |
+### 3. Asset Category Directory (`src/modules/category`)
+*   **Endpoints:**
+    *   `POST /api/categories` — Creates an asset category.
+    *   `GET /api/categories` — Lists categories (supports pagination, sorting, search, and status filtering).
+    *   `GET /api/categories/:id` — Retrieves category details.
+    *   `PATCH /api/categories/:id` — Updates category properties.
+    *   `PATCH /api/categories/:id/status` — Toggles active/inactive status.
+    *   `DELETE /api/categories/:id` — Soft-deletes category.
 
----
-
-## Run Development
-
-```bash
-npm run dev
-```
-
-The server starts on `http://localhost:8000` (or whichever port you configure).
-
-### Health Check
-
-| Endpoint       | Response                                               |
-| -------------- | ------------------------------------------------------ |
-| `GET /`        | `{ success: true, message: "AssetFlow Backend Running" }` |
-| `GET /api/health` | `{ success: true, database: "connected", uptime: … }` |
-
----
-
-## Prisma Commands
-
-```bash
-# Generate the Prisma client after schema changes
-npm run prisma:generate
-
-# Create and apply a new migration
-npm run prisma:migrate
-
-# Open Prisma Studio (visual DB browser)
-npm run prisma:studio
-```
+### 4. Employee Directory (`src/modules/employee`)
+*   **Endpoints:**
+    *   `GET /api/employees` — Lists all employees (supports pagination, search, department/role/status filters).
+    *   `GET /api/employees/:id` — Retrieves employee profile details.
+    *   `PATCH /api/employees/:id` — Updates employee profile.
+    *   `PATCH /api/employees/:id/status` — Toggles active/inactive status (activations automatically generate sequential employee codes).
+    *   `PATCH /api/employees/:id/promote` — Change user role (restricted to Admins; self-promotion blocked).
+    *   `PATCH /api/employees/:id/department` — Transfer employee (blocks transfers to inactive target departments).
 
 ---
 
-## Build & Start (Production)
+## 💻 Installation & Local Running
 
-```bash
-npm run build    # Compile TypeScript → dist/
-npm start        # Run the compiled JS
-```
+1.  **Navigate to directory & install:**
+    ```bash
+    cd backend
+    npm install
+    ```
+2.  **Environment Setup:**
+    Configure variables in `.env` (refer to `.env.example`):
+    ```bash
+    cp .env.example .env
+    ```
+3.  **Prisma Code Generation:**
+    Generate client libraries matching the schema:
+    ```bash
+    npm run prisma:generate
+    ```
+4.  **Database Migration:**
+    Push schema to your PostgreSQL database (creates all tables):
+    ```bash
+    npm run prisma:migrate
+    ```
+5.  **Seeding:**
+    Prepopulate database with default roles and System Admin account:
+    ```bash
+    npm run prisma:seed
+    ```
+6.  **Run Development Server:**
+    ```bash
+    npm run dev
+    ```
 
 ---
 
-## Scripts
-
-| Script              | Command                      | Description                       |
-| ------------------- | ---------------------------- | --------------------------------- |
-| `dev`               | `tsx watch src/server.ts`    | Start dev server with hot-reload  |
-| `build`             | `tsc`                        | Compile TypeScript                |
-| `start`             | `node dist/server.js`        | Run production build              |
-| `prisma:generate`   | `prisma generate`            | Generate Prisma client            |
-| `prisma:migrate`    | `prisma migrate dev`         | Run database migrations           |
-| `prisma:studio`     | `prisma studio`              | Open Prisma Studio                |
-| `lint`              | `tsc --noEmit`               | Type-check without emitting       |
-
----
-
-## Folder Structure
+## 📂 Project Architecture
 
 ```
 backend/
-│
 ├── prisma/
-│   ├── schema.prisma          # Database schema (generator + datasource only)
-│   └── migrations/            # Auto-generated migration files
+│   ├── schema.prisma          # Database schema models
+│   ├── prisma.config.ts       # Prisma 7 configurations (connection string mappings)
+│   └── seed.ts                # Seeding configuration
 │
 ├── src/
-│   ├── app.ts                 # Express application factory
-│   ├── server.ts              # Entry point — bootstrap & graceful shutdown
+│   ├── app.ts                 # Express application middleware wireup
+│   ├── server.ts              # Entry point bootstrap & graceful shutdown
 │   │
-│   ├── config/                # Centralised configuration
+│   ├── config/                # App-wide configurations
 │   │   ├── env.ts             #   Environment variable validation
-│   │   ├── prisma.ts          #   Singleton PrismaClient
-│   │   ├── cors.ts            #   CORS options
-│   │   └── logger.ts          #   Morgan format selection
+│   │   ├── prisma.ts          #   Singleton PrismaClient with PG adapter
+│   │   ├── cors.ts            #   CORS origins
+│   │   └── logger.ts          #   Morgan format
 │   │
-│   ├── routes/                # Route definitions
-│   │   └── index.ts           #   Root API router (/api/health)
+│   ├── routes/                # Index route registration
+│   │   └── index.ts
 │   │
-│   ├── middleware/            # Express middleware
-│   │   ├── error.middleware.ts        # Global error handler
-│   │   ├── notFound.middleware.ts     # 404 catch-all
-│   │   └── requestLogger.middleware.ts # Structured request logger
+│   ├── middleware/            # Core middlewares
+│   │   ├── auth.middleware.ts          # JWT Authentication & RBAC Authorization
+│   │   ├── error.middleware.ts         # Standard error wrapper
+│   │   ├── notFound.middleware.ts      # 404 handler
+│   │   └── requestLogger.middleware.ts # Structured access logs
 │   │
-│   ├── utils/                 # Reusable utilities
-│   │   ├── ApiResponse.ts     #   Standardised success response
-│   │   ├── ApiError.ts        #   Custom operational error class
-│   │   └── asyncHandler.ts    #   Async route handler wrapper
+│   ├── utils/                 # Reuseable helpers
+│   │   ├── ApiError.ts        #   Custom error class
+│   │   ├── ApiResponse.ts     #   Standard response structure
+│   │   ├── asyncHandler.ts    #   Async promise catch helper
+│   │   ├── bcrypt.ts          #   Bcrypt wrapper
+│   │   └── jwt.ts             #   JWT wrapper
 │   │
 │   ├── constants/             # Application constants
-│   │   └── app.ts             #   App name, API prefix, rate-limit config
+│   ├── types/                 # Express Request augmentations
 │   │
-│   ├── types/                 # TypeScript type augmentations
-│   │   └── express.d.ts       #   Express Request extensions
-│   │
-│   └── modules/               # Feature modules (to be implemented)
+│   └── modules/               # Vertical slice modules
 │       ├── auth/
-│       ├── dashboard/
 │       ├── department/
-│       ├── employee/
-│       ├── asset/
-│       ├── allocation/
-│       ├── booking/
-│       ├── maintenance/
-│       ├── audit/
-│       ├── report/
-│       └── notification/
+│       ├── category/
+│       └── employee/
 │
-├── .env                       # Environment variables (git-ignored)
-├── .env.example               # Template for required variables
-├── .gitignore
-├── package.json
-├── tsconfig.json
-└── README.md
+├── tsconfig.json              # Developer TS settings
+├── tsconfig.build.json        # Strict compilation build TS settings
+└── postman_collection.json    # Ready-to-import Postman collections
 ```
-
-### Why each folder exists
-
-| Folder          | Purpose                                                                 |
-| --------------- | ----------------------------------------------------------------------- |
-| `config/`       | Single source of truth for all external configuration (env, DB, CORS).  |
-| `routes/`       | Declarative route mounting — keeps `app.ts` clean.                      |
-| `middleware/`    | Cross-cutting concerns (logging, error handling, auth in future).       |
-| `utils/`        | Framework-agnostic helpers shared across the entire application.        |
-| `constants/`    | Magic numbers and strings defined once, referenced everywhere.          |
-| `types/`        | TypeScript augmentations and shared interfaces.                         |
-| `modules/`      | Feature-sliced vertical modules — each gets its own router, controller, service, and validation in subsequent phases. |
 
 ---
 
-## License
+## 📋 Script Operations
 
-ISC
+*   `npm run dev` — Launches dev server with hot reload via `tsx watch`.
+*   `npm run build` — Compiles TypeScript to JS in `dist/` (using `tsconfig.build.json` to ignore root configuration files).
+*   `npm start` — Executes compiled JS code.
+*   `npm run lint` — Runs TypeScript compile check (`tsc --noEmit`) to verify types.
+*   `npm run prisma:studio` — Opens Prisma GUI visual database editor.
