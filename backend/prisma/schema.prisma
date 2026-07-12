@@ -23,6 +23,24 @@ enum CategoryStatus {
   INACTIVE
 }
 
+enum AssetStatus {
+  AVAILABLE
+  ALLOCATED
+  RESERVED
+  UNDER_MAINTENANCE
+  LOST
+  RETIRED
+  DISPOSED
+}
+
+enum AssetCondition {
+  NEW
+  EXCELLENT
+  GOOD
+  FAIR
+  DAMAGED
+}
+
 // ── Role ─────────────────────────────────────────────────────
 
 model Role {
@@ -119,5 +137,71 @@ model AssetCategory {
   createdAt        DateTime       @default(now()) @map("created_at")
   updatedAt        DateTime       @updatedAt @map("updated_at")
 
+  assets Asset[]
+
   @@map("asset_categories")
+}
+
+// ── Asset ───────────────────────────────────────────────────────
+
+model Asset {
+  id             String         @id @default(uuid())
+  assetTag       String         @unique @map("asset_tag")
+  serialNumber   String         @unique @map("serial_number")
+  assetName      String         @map("asset_name")
+  description    String?
+  manufacturer   String?
+  modelNumber    String?        @map("model_number")
+  purchaseDate   DateTime?      @map("purchase_date")
+  purchaseCost   Decimal?       @map("purchase_cost") @db.Decimal(10, 2)
+  warrantyExpiry DateTime?      @map("warranty_expiry")
+  location       String?
+  status         AssetStatus    @default(AVAILABLE)
+  condition      AssetCondition @default(NEW)
+  qrCode         String?        @map("qr_code")
+  ownerId        String?        @map("owner_id")
+  departmentId   String?        @map("department_id")
+  categoryId     String?        @map("category_id")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  category AssetCategory? @relation(fields: [categoryId], references: [id])
+  images   AssetImage[]
+  history  AssetHistory[]
+
+  @@index([assetTag])
+  @@index([serialNumber])
+  @@index([categoryId])
+  @@index([status])
+  @@map("assets")
+}
+
+// ── Asset Image ──────────────────────────────────────────────────
+
+model AssetImage {
+  id        String   @id @default(uuid())
+  assetId   String   @map("asset_id")
+  url       String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@map("asset_images")
+}
+
+// ── Asset History ────────────────────────────────────────────────
+
+model AssetHistory {
+  id          String   @id @default(uuid())
+  assetId     String   @map("asset_id")
+  action      String
+  remarks     String?
+  performedBy String   @map("performed_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@map("asset_history")
 }
