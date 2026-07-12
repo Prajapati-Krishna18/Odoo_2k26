@@ -14,6 +14,9 @@ export interface MockUser {
 interface AuthContextValue {
   user: MockUser
   setRole: (role: UserRole) => void
+  isAuthenticated: boolean
+  login: () => void
+  logout: () => void
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -31,13 +34,17 @@ const DEFAULT_USER: MockUser = {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<MockUser>(DEFAULT_USER)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   const setRole = (role: UserRole) => {
     setUser((prev) => ({ ...prev, role }))
   }
 
+  const login = () => setIsAuthenticated(true)
+  const logout = () => setIsAuthenticated(false)
+
   return (
-    <AuthContext.Provider value={{ user, setRole }}>
+    <AuthContext.Provider value={{ user, setRole, isAuthenticated, login, logout }}>
       {children}
     </AuthContext.Provider>
   )
