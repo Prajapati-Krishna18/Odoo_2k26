@@ -37,7 +37,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',            icon: LayoutDashboard, path: '/',            end: true },
+  { label: 'Dashboard',            icon: LayoutDashboard, path: '/dashboard',   end: true },
   { label: 'Organization Setup',   icon: Building2,       path: '/org-setup',   adminOnly: true },
   { label: 'Asset Directory',      icon: Boxes,           path: '/assets' },
   { label: 'Allocation & Transfer',icon: ArrowLeftRight,  path: '/allocations' },
