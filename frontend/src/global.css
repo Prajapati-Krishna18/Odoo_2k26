@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Ecosphere — Global Design Tokens & Base Styles
+   AssetFlow — Global Design Tokens & Base Styles
    Tailwind CSS v4 (CSS-first config via @import "tailwindcss")
    ───────────────────────────────────────────────────────────── */
 
@@ -19,48 +19,33 @@
   --color-text-primary:      #EDF3EA;
   --color-text-muted:        #8FA396;
 
-  /* Environmental */
-  --color-env-primary:       #2FA66B;
-  --color-env-glow:          #7FE3A8;
+  /* Accent */
+  --color-accent-cyan:       #0CCAC8;
 
-  /* Social */
-  --color-social-primary:    #E3A857;
-  --color-social-glow:       #F5CE8C;
+  /* Lifecycle States */
+  --color-status-available:    #2FA66B;
+  --color-status-allocated:    #4869A6;
+  --color-status-reserved:     #E3A857;
+  --color-status-maintenance:  #9061F9;
+  --color-status-lost:         #E06258;
+  --color-status-retired:      #6B7280;
+  --color-status-disposed:     #374151;
 
-  /* Governance */
-  --color-gov-primary:       #4869A6;
-  --color-gov-glow:          #8FB0E0;
-
-  /* Gamification — XP only, never use for E/S/G data */
-  --color-xp-accent:         #C7F45B;
-
-  /* Danger */
-  --color-danger:            #E06258;
-
-  /* ── Typography ─────────────────────────────────────────── */
-  --font-display:  'Fraunces', Georgia, serif;
+  /* Typography */
+  --font-display:  'Space Grotesk', system-ui, sans-serif;
   --font-body:     'Inter', system-ui, sans-serif;
   --font-mono:     'Space Mono', 'Courier New', monospace;
+  --font-data:     'IBM Plex Mono', 'Courier New', monospace;
 
-  /* ── Border Radius (organic, irregular feel) ────────────── */
-  --radius-panel:    24px;
-  --radius-panel-sm: 20px;
-  --radius-panel-lg: 28px;
-  --radius-chip:     10px;
-  --radius-btn:      12px;
-
-  /* ── Shadows (soft, diffused — NO hard drops) ───────────── */
-  --shadow-soft:  0 4px 24px 0 rgba(0, 0, 0, 0.35);
-  --shadow-panel: 0 8px 40px 0 rgba(0, 0, 0, 0.40);
-
-  /* Glow shadows per module */
-  --shadow-env-glow:    0 0 28px 0 rgba(127, 227, 168, 0.18);
-  --shadow-social-glow: 0 0 28px 0 rgba(245, 206, 140, 0.18);
-  --shadow-gov-glow:    0 0 28px 0 rgba(143, 176, 224, 0.18);
-  --shadow-xp-glow:     0 0 28px 0 rgba(199, 244, 91,  0.22);
+  /* Border Radius — rectangular/technical feel */
+  --radius-panel:    4px;
+  --radius-panel-sm: 2px;
+  --radius-panel-lg: 6px;
+  --radius-chip:     2px;
+  --radius-btn:      2px;
 }
 
-/* ── CSS Custom Properties (raw access outside Tailwind) ──── */
+/* ── CSS Custom Properties ─────────────────────────────────── */
 :root {
   --bg-void:           #0B120E;
   --bg-surface:        #131F19;
@@ -68,28 +53,19 @@
   --border-soft:       #24382C;
   --text-primary:      #EDF3EA;
   --text-muted:        #8FA396;
+  --accent-cyan:       #0CCAC8;
 
-  --env-primary:       #2FA66B;
-  --env-glow:          #7FE3A8;
-  --social-primary:    #E3A857;
-  --social-glow:       #F5CE8C;
-  --gov-primary:       #4869A6;
-  --gov-glow:          #8FB0E0;
-  --xp-accent:         #C7F45B;
-  --danger:            #E06258;
+  /* Grid line for blueprint background */
+  --grid-line:         rgba(12, 202, 200, 0.055);
 
-  --radius-panel:      24px;
-  --radius-panel-sm:   20px;
-  --radius-panel-lg:   28px;
-  --radius-chip:       10px;
-  --radius-btn:        12px;
-
-  --shadow-soft:       0 4px 24px 0 rgba(0, 0, 0, 0.35);
-  --shadow-panel:      0 8px 40px 0 rgba(0, 0, 0, 0.40);
-  --shadow-env-glow:   0 0 28px 0 rgba(127, 227, 168, 0.18);
-  --shadow-social-glow:0 0 28px 0 rgba(245, 206, 140, 0.18);
-  --shadow-gov-glow:   0 0 28px 0 rgba(143, 176, 224, 0.18);
-  --shadow-xp-glow:    0 0 28px 0 rgba(199, 244, 91,  0.22);
+  /* Lifecycle status colors */
+  --status-available:    #2FA66B;
+  --status-allocated:    #4869A6;
+  --status-reserved:     #E3A857;
+  --status-maintenance:  #9061F9;
+  --status-lost:         #E06258;
+  --status-retired:      #6B7280;
+  --status-disposed:     #374151;
 }
 
 /* ── Base Reset & Global Styles ─────────────────────────────── */
@@ -110,202 +86,80 @@ body {
   background-color: var(--bg-void);
   color: var(--text-primary);
   font-family: 'Inter', system-ui, sans-serif;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.6;
   min-height: 100dvh;
 }
 
-/* ── Typography Rules ────────────────────────────────────────── */
-
-/* Fraunces for H1, H2 and hero/stat display moments */
-h1, h2,
-.font-display {
-  font-family: 'Fraunces', Georgia, serif;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
+/* ── Typography ──────────────────────────────────────────────── */
+h1, h2, .font-display {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
 }
 
-/* Inter for everything else (body, nav, buttons, labels) */
-h3, h4, h5, h6,
-p, a, button, label, input, select, textarea,
-nav, footer, .font-body {
-  font-family: 'Inter', system-ui, sans-serif;
-}
-
-/* Space Mono: EVERY numeric data value — scores, XP, percentages, dates, IDs */
-.font-data,
-[data-numeric],
-.stat-value,
-.xp-value,
-.score-value,
-.date-value,
-.id-value,
-.percentage-value {
-  font-family: 'Space Mono', 'Courier New', monospace;
+.font-data, [data-numeric] {
+  font-family: 'IBM Plex Mono', monospace;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
 }
 
-/* ── Panel Base Style ────────────────────────────────────────── */
+.font-mono {
+  font-family: 'Space Mono', monospace;
+}
+
+/* ── Blueprint Grid ──────────────────────────────────────────── */
+/* Used in the intro sequence overlay — very faint engineering grid */
+.blueprint-grid {
+  background-color: var(--bg-void);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(rgba(12, 202, 200, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(12, 202, 200, 0.022) 1px, transparent 1px);
+  background-size: 40px 40px, 40px 40px, 200px 200px, 200px 200px;
+}
+
+/* ── Panel / Card Base ───────────────────────────────────────── */
+/* Sharp-cornered for the mechanical/technical aesthetic */
 .panel {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-soft);
-  border-radius: var(--radius-panel);
-  box-shadow: var(--shadow-panel);
-  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+  border-radius: 4px;
+  transition: border-color 0.2s ease;
 }
 
-.panel:hover {
-  box-shadow: var(--shadow-panel);
-}
-
-/* Module-aware panel hover glows */
-.panel-env:hover {
-  box-shadow: var(--shadow-panel), var(--shadow-env-glow);
-  border-color: color-mix(in srgb, var(--env-glow) 30%, var(--border-soft));
-}
-
-.panel-social:hover {
-  box-shadow: var(--shadow-panel), var(--shadow-social-glow);
-  border-color: color-mix(in srgb, var(--social-glow) 30%, var(--border-soft));
-}
-
-.panel-gov:hover {
-  box-shadow: var(--shadow-panel), var(--shadow-gov-glow);
-  border-color: color-mix(in srgb, var(--gov-glow) 30%, var(--border-soft));
-}
-
-.panel-xp:hover {
-  box-shadow: var(--shadow-panel), var(--shadow-xp-glow);
-  border-color: color-mix(in srgb, var(--xp-accent) 25%, var(--border-soft));
-}
-
-/* ── Surface variants ────────────────────────────────────────── */
-.surface {
-  background-color: var(--bg-surface);
-}
-
-.surface-raised {
+.panel-raised {
   background-color: var(--bg-surface-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+}
+
+/* ── Stamp Box ───────────────────────────────────────────────── */
+/* The rectangular stamped-border treatment for wordmarks */
+.stamp-box {
+  border: 1.5px solid var(--accent-cyan);
+  padding: 5px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
 }
 
 /* ── Scrollbar ───────────────────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--bg-void);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--border-soft);
-  border-radius: 99px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-void); }
+::-webkit-scrollbar-thumb { background: var(--border-soft); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-/* ── Focus Rings ─────────────────────────────────────────────── */
+/* ── Focus ───────────────────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid var(--env-primary);
+  outline: 1.5px solid var(--accent-cyan);
   outline-offset: 2px;
-  border-radius: 4px;
 }
 
 /* ── Selection ───────────────────────────────────────────────── */
 ::selection {
-  background-color: color-mix(in srgb, var(--env-primary) 35%, transparent);
+  background-color: rgba(12, 202, 200, 0.2);
   color: var(--text-primary);
-}
-
-/* ── Utility: gradient text ──────────────────────────────────── */
-.gradient-text-env {
-  background: linear-gradient(135deg, var(--env-primary), var(--env-glow));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.gradient-text-social {
-  background: linear-gradient(135deg, var(--social-primary), var(--social-glow));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.gradient-text-gov {
-  background: linear-gradient(135deg, var(--gov-primary), var(--gov-glow));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.gradient-text-xp {
-  background: linear-gradient(135deg, var(--xp-accent), #E8FF8A);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ── Chip / Badge ────────────────────────────────────────────── */
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  border-radius: var(--radius-chip);
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  border: 1px solid transparent;
-}
-
-.chip-env {
-  background-color: color-mix(in srgb, var(--env-primary) 15%, transparent);
-  color: var(--env-glow);
-  border-color: color-mix(in srgb, var(--env-primary) 40%, transparent);
-}
-
-.chip-social {
-  background-color: color-mix(in srgb, var(--social-primary) 15%, transparent);
-  color: var(--social-glow);
-  border-color: color-mix(in srgb, var(--social-primary) 40%, transparent);
-}
-
-.chip-gov {
-  background-color: color-mix(in srgb, var(--gov-primary) 15%, transparent);
-  color: var(--gov-glow);
-  border-color: color-mix(in srgb, var(--gov-primary) 40%, transparent);
-}
-
-.chip-xp {
-  background-color: color-mix(in srgb, var(--xp-accent) 15%, transparent);
-  color: var(--xp-accent);
-  border-color: color-mix(in srgb, var(--xp-accent) 40%, transparent);
-}
-
-.chip-danger {
-  background-color: color-mix(in srgb, var(--danger) 15%, transparent);
-  color: var(--danger);
-  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
-}
-
-/* ── Transition presets ──────────────────────────────────────── */
-.transition-panel {
-  transition: box-shadow 0.25s ease, border-color 0.25s ease, background-color 0.25s ease;
-}
-
-.transition-fast {
-  transition: all 0.15s ease;
-}
-
-/* ── Misc ────────────────────────────────────────────────────── */
-img, svg {
-  display: block;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
 }
