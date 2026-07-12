@@ -1,7 +1,6 @@
 /**
  * @file    routes/index.ts
  * @desc    Root API router.
- *
  *          Mounts module-level routers and the health-check endpoint.
  */
 
@@ -15,6 +14,11 @@ import authRouter from "../modules/auth/auth.routes.js";
 import departmentRouter from "../modules/department/department.routes.js";
 import categoryRouter from "../modules/category/category.routes.js";
 import employeeRouter from "../modules/employee/employee.routes.js";
+import dashboardRouter from "../modules/dashboard/dashboard.routes.js";
+import notificationRouter from "../modules/notification/notification.routes.js";
+import activityRouter from "../modules/activity/activity.routes.js";
+import uploadRouter from "../modules/upload/upload.routes.js";
+import searchRouter from "../modules/search/search.routes.js";
 
 const router = Router();
 
@@ -23,7 +27,6 @@ const router = Router();
 router.get(
   "/health",
   asyncHandler(async (_req, res) => {
-    // Quick connectivity test — will throw if the DB is unreachable
     let dbStatus: "connected" | "disconnected" = "disconnected";
     try {
       await prisma.$queryRaw`SELECT 1`;
@@ -49,5 +52,10 @@ router.use("/auth", authRouter);
 router.use("/departments", departmentRouter);
 router.use("/categories", categoryRouter);
 router.use("/employees", employeeRouter);
+router.use("/dashboard", dashboardRouter);
+router.use("/notifications", notificationRouter);
+router.use("/activities", activityRouter);
+router.use("/upload", uploadRouter);
+router.use("/search", searchRouter);
 
 export default router;

@@ -13,6 +13,7 @@ import {
   departmentQuerySchema,
   updateStatusSchema,
 } from "./department.validator.js";
+import { ActivityLogger } from "../activity/activity.service.js";
 
 export const create = async (req: Request, res: Response): Promise<void> => {
   const parsed = createDepartmentSchema.safeParse(req.body);
@@ -25,6 +26,16 @@ export const create = async (req: Request, res: Response): Promise<void> => {
   }
 
   const department = await departmentService.createDepartment(parsed.data);
+  if (req.user) {
+    ActivityLogger.log(
+      req.user.id,
+      "CREATE",
+      "DEPARTMENT",
+      department.id,
+      `Department '${department.name}' (Code: ${department.code}) created`,
+      req
+    );
+  }
   const response = ApiResponse.created("Department created successfully", department);
   res.status(response.statusCode).json(response);
 };
@@ -56,6 +67,16 @@ export const update = async (req: Request, res: Response): Promise<void> => {
   }
 
   const department = await departmentService.updateDepartment(id, parsed.data);
+  if (req.user) {
+    ActivityLogger.log(
+      req.user.id,
+      "UPDATE",
+      "DEPARTMENT",
+      department.id,
+      `Department '${department.name}' (Code: ${department.code}) updated`,
+      req
+    );
+  }
   const response = ApiResponse.ok("Department updated successfully", department);
   res.status(response.statusCode).json(response);
 };
@@ -76,6 +97,16 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
   }
 
   const department = await departmentService.updateDepartmentStatus(id, parsed.data.status);
+  if (req.user) {
+    ActivityLogger.log(
+      req.user.id,
+      "UPDATE_STATUS",
+      "DEPARTMENT",
+      department.id,
+      `Department '${department.name}' (Code: ${department.code}) status changed to ${parsed.data.status}`,
+      req
+    );
+  }
   const response = ApiResponse.ok(`Department status updated to ${parsed.data.status}`, department);
   res.status(response.statusCode).json(response);
 };
@@ -87,6 +118,16 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
   }
 
   await departmentService.deleteDepartment(id);
+  if (req.user) {
+    ActivityLogger.log(
+      req.user.id,
+      "DELETE",
+      "DEPARTMENT",
+      id,
+      "Department deleted successfully",
+      req
+    );
+  }
   const response = ApiResponse.ok("Department deleted successfully", null);
   res.status(response.statusCode).json(response);
 };
