@@ -11,6 +11,8 @@
 
 **An intelligent, enterprise-grade ERP workspace for corporate assets, bookings, custody transfers, and AI-driven infrastructure analytics.**
 
+🔗 **Live Demo:** [odoo-2k26.vercel.app](https://odoo-2k26.vercel.app)
+
 [Key Features](#-key-features) • [Tech Stack](#-technology-stack) • [Installation](#-setup--installation) • [AI Assistant](#-gemini-ai-assistant)
 
 </div>
