@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Eye, EyeOff, Layers } from 'lucide-react'
-import { useAuth } from '@/context/AuthContext'
+import { useAuth, ALL_ROLES, type UserRole } from '@/context/AuthContext'
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, setRole } = useAuth()
   const navigate = useNavigate()
 
+  const [selectedRole, setSelectedRole] = useState<UserRole>('Employee')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
@@ -16,6 +17,7 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setTimeout(() => {
+      setRole(selectedRole)
       login()
       navigate('/dashboard', { replace: true })
     }, 600)
@@ -34,6 +36,21 @@ export default function LoginPage() {
         <div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Sign in</h1>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>Access your workspace. Your role is assigned by an admin.</p>
+        </div>
+
+        {/* Role Selector */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <label style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.06em' }}>Select Role</label>
+          <select
+            value={selectedRole}
+            onChange={(e) => setSelectedRole(e.target.value as UserRole)}
+            className="af-input"
+            style={{ cursor: 'pointer' }}
+          >
+            {ALL_ROLES.map((r) => (
+              <option key={r} value={r}>{r}</option>
+            ))}
+          </select>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

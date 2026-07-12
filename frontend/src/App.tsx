@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from '@/context/AuthContext'
+import { AuthProvider, useAuth } from '@/context/AuthContext'
 import { AppShell } from '@/layouts/AppShell'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import LoginPage from '@/pages/Login/LoginPage'
@@ -18,15 +18,23 @@ import {
   StateRailTestPage,
 } from '@/pages'
 
+function PublicRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth()
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />
+  }
+  return <>{children}</>
+}
+
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
           {/* Public auth routes */}
-          <Route path="/" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/" element={<PublicRoute><LoginPage /></PublicRoute>} />
+          <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
+          <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
 
           {/* Protected app shell */}
           <Route element={<ProtectedRoute />}>

@@ -21,9 +21,8 @@ import {
   History,
   ChevronLeft,
   ChevronRight,
-  UserCog,
 } from 'lucide-react'
-import { useAuth, ALL_ROLES, type UserRole } from '@/context/AuthContext'
+import { useAuth } from '@/context/AuthContext'
 import { colors } from '@/lib/tokens'
 
 // ─── Nav definitions ──────────────────────────────────────────────────────────
@@ -58,7 +57,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ revealAnimProps }: SidebarProps) {
-  const { user, setRole } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
@@ -220,53 +219,13 @@ export function Sidebar({ revealAnimProps }: SidebarProps) {
         })}
       </nav>
 
-      {/* ── Footer: Role Switcher + Collapse Toggle ────────────────── */}
+      {/* ── Footer: Collapse Toggle ─────────────────────────────────── */}
       <div
         style={{
           borderTop: `1px solid var(--border-soft)`,
           flexShrink: 0,
         }}
       >
-        {/* Role Switcher */}
-        {!collapsed && (
-          <div style={{ padding: '10px 14px', borderBottom: `1px solid var(--border-soft)` }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                marginBottom: 6,
-                color: 'var(--text-muted)',
-              }}
-            >
-              <UserCog size={12} />
-              <span style={{ fontSize: '0.65rem', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                Dev: Role Preview
-              </span>
-            </div>
-            <select
-              value={user.role}
-              onChange={(e) => setRole(e.target.value as UserRole)}
-              style={{
-                width: '100%',
-                background: 'var(--bg-surface-raised)',
-                border: `1px solid var(--border-soft)`,
-                color: 'var(--text-primary)',
-                padding: '5px 8px',
-                fontSize: '0.75rem',
-                fontFamily: "'Inter', system-ui",
-                borderRadius: 0,
-                cursor: 'pointer',
-                outline: 'none',
-              }}
-            >
-              {ALL_ROLES.map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
-          </div>
-        )}
-
         {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed((c) => !c)}

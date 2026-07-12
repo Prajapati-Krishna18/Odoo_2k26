@@ -65,3 +65,26 @@ export const ALL_ROLES: UserRole[] = [
   'Department Head',
   'Employee',
 ]
+
+/** Route access mapping — which roles can access which paths */
+export const ROUTE_ACCESS: Record<string, UserRole[]> = {
+  '/dashboard':     ['Admin', 'Asset Manager', 'Department Head', 'Employee'],
+  '/org-setup':     ['Admin'],
+  '/assets':        ['Admin', 'Asset Manager', 'Department Head', 'Employee'],
+  '/allocations':   ['Admin', 'Asset Manager', 'Department Head'],
+  '/bookings':      ['Admin', 'Asset Manager', 'Department Head', 'Employee'],
+  '/maintenance':   ['Admin', 'Asset Manager'],
+  '/audits':        ['Admin', 'Asset Manager'],
+  '/reports':       ['Admin', 'Asset Manager', 'Department Head'],
+  '/activity':      ['Admin', 'Asset Manager', 'Department Head', 'Employee'],
+}
+
+export function canAccessRoute(role: UserRole, path: string): boolean {
+  const allowed = ROUTE_ACCESS[path]
+  if (!allowed) return false
+  return allowed.includes(role)
+}
+
+export function getDefaultRoute(_role: UserRole): string {
+  return '/dashboard'
+}
